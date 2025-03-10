@@ -515,5 +515,4 @@ const menu_fac_list_title = MENU_FAC_LIST_VIEW.FACILITIES_LIST_VIEW.title;
 
 
 const menu_fac_list_lvl5 = createTable(MENU_FAC_LIST_LEVEL_5.facilities_list_level5.buttons, CMD_WRAPPERS.add);
-const menu_fac_list_lvl5_t =
-log(menu_fac_list_table)
+const menu_fac_list_lvl5_t = MENU_FAC_LIST_LEVEL_5.facilities_list_level5.title;
