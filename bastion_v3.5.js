@@ -1,34 +1,31 @@
 const log = console.log;
 
 const FAC_COUNT = 37;
-//any name not tagged with a hireling count has 1 hirelings that it starts with.
 const FAC_SPECIAL_IDS = {
     //Craft - Order ID 0
     ARCANE_STUDY: 0,
     LABORATORY: 1,
     SACRISTY: 2,
-    SANCTUARY: 3, //Hirelings: 4
+    SANCTUARY: 3,
     SCRIPTORIUM: 4,
-    SMITHY: 5, // Hirelings: 2
-    WORKSHOP: 6, // Hirelings: 3
+    SMITHY: 5,
+    WORKSHOP: 6,
     //Trade - Order ID 1
     ARMORY: 7,
     STOREHOUSE: 8,
-    GAMING_HALL: 9, // Hirelings: 4 // Vast
+    GAMING_HALL: 9,
     STABLE: 10,
     //RECRUIT - Order ID 2
     BARRACK: 11,
-    //Vast Sizes Start
     ADVENTURERS_GUILD: 12,
     BAKERS_GUILD: 13,
     BREWERS_GUILD: 14,
     MASONS_GUILD: 15,
     SHIPBUILDERS_GUILD: 16,
     THIEVES_GUILD: 17,
-    //Vast Sizes End
-    MENAGERIE: 18, // Hirelings: 2 // Vast
+    MENAGERIE: 18,
     TELEPORTATION_CIRCLE: 19,
-    WAR_ROOM: 20, // Hirelings: 2 // VAST
+    WAR_ROOM: 20,
     //Harvest - Order ID 3
     FOOD_GARDEN: 21,
     HERB_GARDEN: 22,
@@ -42,17 +39,131 @@ const FAC_SPECIAL_IDS = {
     PUB: 29,
     TROPHY_ROOM: 30,
     //Empower - Order ID 5
-    DEMIPLANE: 31, //Vast
+    DEMIPLANE: 31,
     MEDITATION_CHAMBER: 32,
     OBSERVATORY: 33,
     SANCTUM: 34,
-    THEATER: 35, //Hirelings: 4 // VAST
-    TRAINING_AREA: 36, //Hirelings: 4 // VAST
+    THEATER: 35,
+    TRAINING_AREA: 36,
 };
 const FAC_SPECIAL_NAMES = Object.entries(FAC_SPECIAL_IDS).reduce((map,[name,id]) => {
     map[id] = name;
     return map;
 },{})
+
+const FACILITIES_LIST_VIEW = 0;
+const ORDERS_VIEW_ONGOING = 1;
+const INVENTORY_LIST = 2;
+const HELP_LIST = 3;
+
+const MENU_MAIN = {
+    main: {
+        title: "Bastion Main Menu",
+        buttons: [
+            {label:"Facilities List", command: FACILITIES_LIST_VIEW},
+            {label:"Ongoing Orders", command: ORDERS_VIEW_ONGOING},
+            {label:"Bastion Inventory", command: INVENTORY_LIST},
+            {label:"Bastion Help&Info", command: HELP_LIST},
+        ],
+    },
+    jump_menu: {
+        title: "Jump To...",
+        buttons : [
+        ],
+    },
+};
+
+
+const FACILITIES_LIST_LEVEL_5 = 5;
+const FACILITIES_LIST_LEVEL_9 = 6;
+const FACILITIES_LIST_LEVEL_13 = 7;
+const FACILITIES_LIST_LEVEL_17 = 8;
+
+const MENU_FAC_LIST_VIEW = {
+    FACILITIES_LIST_VIEW: {
+        title: "Bastion Facilities Lists By Level",
+        buttons : [
+            {label:"Lvl 5 Facilities", command: FACILITIES_LIST_LEVEL_5},
+            {label:"Lvl 9 Facilities", command: FACILITIES_LIST_LEVEL_9},
+            {label:"Lvl 13 Facilities", command: FACILITIES_LIST_LEVEL_13},
+            {label:"Lvl 17 Facilities", command: FACILITIES_LIST_LEVEL_17},
+        ],
+    },
+
+};
+
+
+const MENU_FAC_LIST_LEVEL_5 = {
+    facilities_list_level5:{
+        title: "Select Two Level 5 Facilities",
+        buttons : [
+            {label:"Arcane Study", command: FAC_SPECIAL_IDS.ARCANE_STUDY},
+            {label:"Armory", command: FAC_SPECIAL_IDS.ARMORY},
+            {label:"Barrack", command: FAC_SPECIAL_IDS.BARRACK},
+            {label:"Food Garden", command: FAC_SPECIAL_IDS.FOOD_GARDEN},
+            {label:"Herb Garden", command: FAC_SPECIAL_IDS.HERB_GARDEN},
+            {label:"Poison Garden", command: FAC_SPECIAL_IDS.POISON_GARDEN},
+            {label:"Decorative Garden", command: FAC_SPECIAL_IDS.DECORATIVE_GARDEN},
+            {label:"Library", command: FAC_SPECIAL_IDS.LIBRARY},
+            {label:"Smithy", command: FAC_SPECIAL_IDS.SMITHY},
+            {label:"Storehouse", command: FAC_SPECIAL_IDS.STOREHOUSE},
+            {label:"Workshop", command: FAC_SPECIAL_IDS.WORKSHOP},
+        ],
+    },
+};
+const MENU_FAC_LIST_LEVEL_9 = {
+    facilities_list_level9:{
+        title: "Select Two Level 9 Facilities",
+        buttons : [
+            {label:"Gaming Hall", command: FAC_SPECIAL_IDS.GAMING_HALL},
+            {label:"Greenhouse", command: FAC_SPECIAL_IDS.GREENHOUSE},
+            {label:"Laboratory", command: FAC_SPECIAL_IDS.LABORATORY},
+            {label:"Sacristy", command: FAC_SPECIAL_IDS.SACRISTY},
+            {label:"Scriptorium", command: FAC_SPECIAL_IDS.SCRIPTORIUM},
+            {label:"Stable", command: FAC_SPECIAL_IDS.STABLE},
+            {label:"Teleportation Circle", command: FAC_SPECIAL_IDS.TELEPORTATION_CIRCLE},
+            {label:"Theater", command: FAC_SPECIAL_IDS.THEATER},
+            {label:"Training Area", command: FAC_SPECIAL_IDS.TRAINING_AREA},
+            {label:"Trophy Room", command: FAC_SPECIAL_IDS.TROPHY_ROOM},
+        ],
+    },
+};
+
+const MENU_FAC_LIST_LEVEL_13 = {
+    facilities_list_level13:{
+        title: "Select Two Level 13 Facilities",
+        buttons : [
+            {label:"Archive", command: FAC_SPECIAL_IDS.ARCHIVE},
+            {label:"Meditation Chamber", command: FAC_SPECIAL_IDS.MEDITATION_CHAMBER},
+            {label:"Menagerie", command: FAC_SPECIAL_IDS.MENAGERIE},
+            {label:"Observatory", command: FAC_SPECIAL_IDS.OBSERVATORY},
+            {label:"Pub", command: FAC_SPECIAL_IDS.PUB},
+            {label:"Reliquary", command: FAC_SPECIAL_IDS.RELIQUARY},
+        ],
+    },
+};
+const MENU_FAC_LIST_LEVEL_17 = {
+    facilities_list_level17:{
+        title: "Select Two Level 17 Facilities",
+        buttons : [
+            {label:"Demiplane", command: FAC_SPECIAL_IDS.DEMIPLANE},
+            {label:"Baker's Guild", command: FAC_SPECIAL_IDS.BAKERS_GUILD},
+            {label:"Mason's Guild", command: FAC_SPECIAL_IDS.MASONS_GUILD},
+            {label:"Brewer's Guild", command: FAC_SPECIAL_IDS.BREWERS_GUILD},
+            {label:"Shipbuilder's Guild", command: FAC_SPECIAL_IDS.SHIPBUILDERS_GUILD},
+            {label:"Adventurer's Guild", command: FAC_SPECIAL_IDS.ADVENTURERS_GUILD},
+            {label:"Thieve's Guild", command: FAC_SPECIAL_IDS.THIEVES_GUILD},
+            {label:"Sanctum", command: FAC_SPECIAL_IDS.SANCTUM},
+            {label:"War Room", command: FAC_SPECIAL_IDS.WAR_ROOM},
+        ],
+    },
+};
+
+
+const BASTION_INPUT_COMMANDS_TABLE = {
+    command_id: new Uint8Array(64),
+};
+
 
 
 const TOTAL_PRODS = 58;
@@ -227,7 +338,7 @@ let PLAYERS_NAMES_ID_TABLE = Object.entries(PLAYER_ID_NAMES_TABLE).reduce((map,[
     return map;
 },{});
 
-function updateNameIDsTable(){
+function update_name_ids_table(){
     PLAYERS_NAMES_ID_TABLE = Object.entries(PLAYER_ID_NAMES_TABLE).reduce((map,[id,name]) => {
         map[name] = id;
         return map;
@@ -278,7 +389,7 @@ function addPlayer(player_name){
     };
     PLAYER_ID_NAMES_TABLE[gid] = player_name;
     gid += 1;
-    updateNameIDsTable();
+    update_name_ids_table();
     return `Player ${player_name} registered.`
 };
 addPlayer("Storm")
@@ -290,20 +401,20 @@ function getFacilityOrderType(fac_id){
     return PROD_HEADER_IDS[msb];
 };
 
-function addFacility(fac_id, player_id){
+function add_facility(fac_id, player_id){
     PLAYERS_INFO_FACILITY_TABLE.facilities[player_id] |= 1n << fac_id;
 };
 
-function removeFacility(fac_id, player_id){
+function remove_facility(fac_id, player_id){
     PLAYERS_INFO_FACILITY_TABLE.facilities[player_id] &= ~(1n << fac_id);
 };
 
 
-function startOrder(prod_id,player_id){
+function start_order(prod_id,player_id){
     PLAYERS_SCHEDULE_TABLES.scheduled_orderes[player_id] |= (1n << prod_id);
 };
 
-function finishOrder(prod_id, player_id){
+function finish_order(prod_id, player_id){
     const totals = 59;
     const id_offset = totals*player_id;
     PLAYERS_INFO_INVENTORY_TABLE.items_name[prod_id+id_offset] = prod_id;
@@ -362,21 +473,47 @@ function  viewPlayerFacilities(player_id){
     return collect_fac_data;
 };
 
-startOrder(33n,0);
-finishOrder(33,0);
-log(viewPlayerInventory(0));
-log(viewPlayerActiveOrders(0));
-startOrder(33n,0);
-finishOrder(33,0);
-log(viewPlayerInventory(0));
-log(viewPlayerActiveOrders(0));
-startOrder(15n,0);
-finishOrder(15,0);
-log(viewPlayerInventory(0));
-log(viewPlayerActiveOrders(0));
-addFacility(0n,0)
-addFacility(1n,0)
-addFacility(5n,2)
-log(PLAYERS_INFO_FACILITY_TABLE.facilities)
-log(viewPlayerFacilities(0));
-log(viewPlayerFacilities(2));
+
+function createButton(data, cmd_wrapper) {
+    const compile_wrapper = cmd_wrapper.replace("#cmd_id", data.command);
+    return `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="${compile_wrapper}">${data.label}</a></td>`;
+
+}
+
+function createRows(buttonData,cmd_wrapper) {
+    let rows = [];
+    for (let i = 0; i < buttonData.length; i += 2) {
+        let row = '<tr>';
+        row += createButton(buttonData[i],cmd_wrapper);
+        if (i + 1 < buttonData.length) {
+            row += createButton(buttonData[i + 1],cmd_wrapper);
+        }
+        row += '</tr>';
+        rows.push(row);
+    }
+    return rows;
+}
+
+
+function createTable(btn_list, cmd_wrapper){
+    const rows = createRows(btn_list, cmd_wrapper)
+    return `<table style="width:100%; text-align:center;">${rows.join('')}</table>`;
+};
+
+
+const CMD_WRAPPERS = {
+    facilities: "@facilities #cmd_id",
+    menu: "@menu #cmd_id",
+    add: "@add #cmd_id",
+};
+
+const main_menu_table = createTable(MENU_MAIN.main.buttons,CMD_WRAPPERS.menu);
+const main_menu_title = MENU_FAC_LIST_VIEW.FACILITIES_LIST_VIEW.title;
+
+const menu_fac_list_table = createTable(MENU_FAC_LIST_VIEW.FACILITIES_LIST_VIEW.buttons,CMD_WRAPPERS.facilities);
+const menu_fac_list_title = MENU_FAC_LIST_VIEW.FACILITIES_LIST_VIEW.title;
+
+
+const menu_fac_list_lvl5 = createTable(MENU_FAC_LIST_LEVEL_5.facilities_list_level5.buttons, CMD_WRAPPERS.add);
+const menu_fac_list_lvl5_t =
+log(menu_fac_list_table)
