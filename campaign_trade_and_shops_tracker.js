@@ -41,7 +41,7 @@ function add_new_city(city_name){
     CITIES_TABLE.CITIES_GID_TRACKER++;
 };
 
-const SHOPS_NAMES = {
+const SHOP_ID_NAME_PAIRS = {
     SHOPS_GID_TRACKER: 0,
     0: null,
     1: null,
@@ -64,6 +64,16 @@ const SHOPS_NAMES = {
     18: null,
     19: null,
 };
+
+//If this would be too slow, a bi-diretional map with O(1) can easily replace it.
+function getShopIDByName(shop_name){
+    for(const [key,value] of Object.entries(SHOP_ID_NAME_PAIRS)){
+        if (shop_name === value){
+            return key;
+        };
+    }
+};
+
 
 const SHOPS_PER_CITY_CURRENT = {
     //City PK : Shops Count,
@@ -102,6 +112,14 @@ const SHOPS_PER_CITY_CURRENT = {
 
 };
 
+let SHOPKEEPERS_IDS = {
+    SHOPKEEPERS_GID_TRACKER: 0,
+};
+
+function getShopKeeperIDByName(shopkeeper_name){
+
+};
+
 const CITIES_OFFSET = 20;
 const MAX_SHOPS_PER_CITY = 32;
 const CITIES_SHOPS_IDS_TABLE = {
@@ -120,21 +138,33 @@ const SHOP_TYPES = {
 };
 
 function add_new_shops(shop_name,city_id){
-    SHOPS_NAMES[SHOPS_NAMES.SHOPS_GID_TRACKER] = shop_name;
+    SHOP_ID_NAME_PAIRS[SHOP_ID_NAME_PAIRS.SHOPS_GID_TRACKER] = shop_name;
+
     const current_shops_count = SHOPS_PER_CITY_CURRENT[city_id];
-    CITIES_SHOPS_IDS_TABLE.shop_id[(CITIES_OFFSET*city_id)+current_shops_count] = SHOPS_NAMES.SHOPS_GID_TRACKER;
+    const next_empty_key = (CITIES_OFFSET*city_id) + current_shops_count;
+
+    CITIES_SHOPS_IDS_TABLE.shop_id[next_empty_key] = SHOP_ID_NAME_PAIRS.SHOPS_GID_TRACKER;
+
     SHOPS_PER_CITY_CURRENT[city_id]++;
-    SHOPS_NAMES.SHOPS_GID_TRACKER++;
+    SHOP_ID_NAME_PAIRS.SHOPS_GID_TRACKER++;
 };
-log(CITIES_SHOPS_IDS_TABLE)
+
+function add_new_shopkeepers(shopkeeper_name, shop_name=null, cityt_id=null){
+    const current_kprs_gid = SHOPKEEPERS_IDS.SHOPKEEPERS_GID_TRACKER;
+    SHOPKEEPERS_IDS[current_kprs_gid] = shopkeeper_name;
+
+    if(shop_name){
+        const shop_id = getShopIDByName(shop_name)
+        CITIES_SHOPS_IDS_TABLE.shop_shopkeepers[shop_id] = 1 << current_kprs_gid;
+    };
+};
 
 add_new_city("StormLand Paris");
 add_new_city("The Promised Ocean");
-add_new_shops("A",0);
+add_new_shops("StormDrive",0);
 add_new_shops("B",0);
 add_new_shops("C",0);
 add_new_shops("D",1);
-log("Count: ", SHOPS_PER_CITY_CURRENT[0])
 
 function getShopsFromCity(city_id){
     let shops = [];
@@ -142,12 +172,25 @@ function getShopsFromCity(city_id){
     const lower_bound = CITIES_OFFSET*city_id;
     const upper_bound = lower_bound + SHOPS_PER_CITY_CURRENT[city_id];
     for (let i = lower_bound; i < upper_bound;i++){
-        log(i)
         const shop_id = CITIES_SHOPS_IDS_TABLE.shop_id[i];
-        const shop_name = SHOPS_NAMES[shop_id];
+        const shop_name = SHOP_ID_NAME_PAIRS[shop_id];
         shops.push(shop_name);
     }
     return shops;
 };
 
+function getShopkeeperFromShop(shopkeeper_id, shop_id,city_id){
+    const lower_bound = CITIES_OFFSET*city_id;
+    const upper_bound = lower_bound+ SHOPS_PER_CITY_CURRENT[city_id];
+    const shopkeepers = CITIES_SHOPS_IDS_TABLE.shop_shopkeepers[city_id]
+    for (let i = 0; i < upper_bound;i++){
+        if ((shopkeepers & (1 << i)) !== 0){
+            return SHOPKEEPERS_IDS[i]
+        };
+    };
+};
+
 log(getShopsFromCity(1))
+log(getShopIDByName("D"))
+add_new_shopkeepers("Octavius","StormDrive");
+log(getShopkeeperFromShop(0,0,0))
