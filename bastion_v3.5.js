@@ -227,7 +227,7 @@ const PROD_HEADER_IDS = {
     18: "CRAFT",
     22: "TRADE",
     34: "RECRUIT",
-    45: "RECRUIT",
+    45: "HARVEST",
     51: "RESEARCH",
     58: "EMPOWER",
 };
@@ -317,6 +317,7 @@ FAC_INTRINSICS.size[18] = FAC_INTRINSICS.size[35] = FAC_INTRINSICS.size[36] = FA
 
 
 const MAX_PLAYERS = 8;
+//TODO: still work in progress here, haven't decided what to do with tihs
 const PLAYERS_SCHEDULE_TABLES = {
     scheduled_orderes: new BigUint64Array(MAX_PLAYERS),
 };
