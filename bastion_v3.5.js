@@ -166,7 +166,7 @@ const BASTION_INPUT_COMMANDS_TABLE = {
 
 
 
-const TOTAL_PRODS = 58;
+const TOTAL_PRODS = 49;
 const FAC_PROD_IDS = {
     0: {name: "ARCANE_FOCUS", description: "PH", count: 0},
     1: "BOOK",
@@ -464,11 +464,11 @@ function getFacilityOrderType(fac_id){
 };
 
 function add_facility(fac_id, player_id){
-    PLAYERS_INFO_FACILITY_TABLE.facilities[player_id] |= 1n << fac_id;
+    PLAYERS_INFO_FACILITY_TABLE.facilities[player_id] |= 1n << BigInt(fac_id);
 };
 
 function remove_facility(fac_id, player_id){
-    PLAYERS_INFO_FACILITY_TABLE.facilities[player_id] &= ~(1n << fac_id);
+    PLAYERS_INFO_FACILITY_TABLE.facilities[player_id] &= ~(1n << BigInt(fac_id));
 };
 
 
@@ -528,7 +528,7 @@ function  viewPlayerFacilities(player_id){
     const lbound = flsb(facilities);
     let collect_fac_data = [];
     for (let i = lbound; i <= ubound; i++){
-        if ((facilities & (1n<<i))!==0n){
+        if ((facilities & (1n<<i))!==0){
             collect_fac_data.push(FAC_SPECIAL_NAMES[i])
         };
     };
@@ -536,11 +536,6 @@ function  viewPlayerFacilities(player_id){
 };
 
 
-function createButton(data, cmd_wrapper) {
-    const compile_wrapper = cmd_wrapper.replace("#cmd_id", data.command);
-    return `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="${compile_wrapper}">${data.label}</a></td>`;
-
-}
 
 function createRows(buttonData,cmd_wrapper) {
     let rows = [];
@@ -556,17 +551,45 @@ function createRows(buttonData,cmd_wrapper) {
     return rows;
 }
 
-
-function createTable(btn_list, cmd_wrapper){
-    const rows = createRows(btn_list, cmd_wrapper)
-    return `<table style="width:100%; text-align:center;">${rows.join('')}</table>`;
-};
-
-
 const CMD_WRAPPERS = {
     facilities: "@facilities #cmd_id",
     menu: "@menu #cmd_id",
     add: "@add #cmd_id",
+};
+
+function createTable(btn_list, cmd_wrapper){
+    let rows = [];
+    const batched = Math.floor(btn_list.length/4);
+    const idx = btn_list.length * 4;
+    const remaining = btn_list % 4;
+    for (let i = 0; i < batched; i++) {
+        const compile_wrapper_0 = cmd_wrapper.replace("#cmd_id", btn_list[i*4].command);
+        const compile_wrapper_1 = cmd_wrapper.replace("#cmd_id", btn_list[(i*4)+1].command);
+        const compile_wrapper_2 = cmd_wrapper.replace("#cmd_id", btn_list[(i*4)+2].command);
+        const compile_wrapper_3 = cmd_wrapper.replace("#cmd_id", btn_list[(i*4)+3].command);
+        const button_style_0 = `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="${compile_wrapper_0}">${btn_list[i*4].label}</a></td>`;
+        const button_style_1 = `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="${compile_wrapper_1}">${btn_list[(i*4)+1].label}</a></td>`;
+        const button_style_2 = `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="${compile_wrapper_2}">${btn_list[(i*4)+2].label}</a></td>`;
+        const button_style_3 = `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="${compile_wrapper_3}">${btn_list[(i*4)+3].label}</a></td>`;
+        let row = '<tr>';
+        row += button_style_0;
+        row += button_style_1;
+        row += button_style_2;
+        row += button_style_3;
+        row += '</tr>';
+        rows.push(row);
+    }
+    if (remaining>0){
+        for(let j = 0; j < remaining;j++){
+            const compile_wrapper = cmd.wrapper.replace("#cmd_id", btn_list[j+idx].command);
+            const button_style = `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="${compile_wrapper}">${btn_list[idx+j].label}</a></td>`;
+            let row = '<tr>';
+            row += button_style;
+            row = '</tr>';
+            rows.push(row);
+        };
+    };
+    return `<table style="width:100%; text-align:center;">${rows.join('')}</table>`;
 };
 
 const main_menu_table = createTable(MENU_MAIN.main.buttons,CMD_WRAPPERS.menu);
@@ -580,7 +603,36 @@ const menu_fac_list_lvl5 = createTable(MENU_FAC_LIST_LEVEL_5.facilities_list_lev
 const menu_fac_list_lvl5_t = MENU_FAC_LIST_LEVEL_5.facilities_list_level5.title;
 
 
-log(start_order(33,0))
-log(viewPlayerActiveOrders(0))
-log(finish_order(33,0))
-log(viewPlayerActiveOrders(0))
+
+
+const command = "!bastion @add 5 0";
+const parts = command.split(" ");
+const method = parts[1].split("@")[1];
+const method_cmd_id = parts[2];
+const player = parts[3];
+if (method==="add"){
+    add_facility(method_cmd_id, player);
+};
+log(viewPlayerFacilities(0))
+
+
+
+
+// log(start_order(33,0))
+// log(viewPlayerActiveOrders(0))
+// log(finish_order(33,0))
+// log(start_order(33,0))
+// log(start_order(33,0))
+// log(start_order(33,0))
+// log(start_order(33,0))
+// log(start_order(33,0))
+// log(finish_order(33,0))
+// log(finish_order(33,0))
+// log(finish_order(33,0))
+// log(finish_order(33,0))
+// log(finish_order(33,0))
+// log(viewPlayerActiveOrders(0))
+// let output = viewPlayerInventory(0);
+// log("Item name: ", output[0]);
+// log("Item count: ", output[1]);
+
