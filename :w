@@ -551,17 +551,12 @@ function createRows(buttonData,cmd_wrapper) {
     return rows;
 }
 
-
-const CMD_DAG_TABLE = {
-    root_cmds: ["@menu","@jump"],
-    menu: ["@facilities"],
-    facilities: ["@fac_lvl5", "@fac_lvl9", "@fac_lvl13", "@fac_lvl17"],
-    fac_lvl5: [], // TODO: Complete commands for all facilities
-    fac_lvl9: [],
-    fac_lvl13: [],
-    fac_lvl17: [],
+const CMD_WRAPPERS = {
+    facilities: "@facilities #cmd_id",
+    menu: "@menu #cmd_id",
+    add: "@add #cmd_id",
+    remove: "@remove #cmd_id",
 };
-
 
 function createTable(btn_list, cmd_wrapper){
     let rows = [];
@@ -598,9 +593,20 @@ function createTable(btn_list, cmd_wrapper){
     return `<table style="width:100%; text-align:center;">${rows.join('')}</table>`;
 };
 
-const cmd_add = "!bastion @add 5 0";
-const cmd_rmv = "!bastion @remove 5 0";
-const cmd_view = "!bastion @remove 5 0";
+const main_menu_table = createTable(MENU_MAIN.main.buttons,CMD_WRAPPERS.menu);
+const main_menu_title = MENU_FAC_LIST_VIEW.FACILITIES_LIST_VIEW.title;
+
+const menu_fac_list_table = createTable(MENU_FAC_LIST_VIEW.FACILITIES_LIST_VIEW.buttons,CMD_WRAPPERS.facilities);
+const menu_fac_list_title = MENU_FAC_LIST_VIEW.FACILITIES_LIST_VIEW.title;
+
+
+const menu_fac_list_lvl5 = createTable(MENU_FAC_LIST_LEVEL_5.facilities_list_level5.buttons, CMD_WRAPPERS.add);
+const menu_fac_list_lvl5_t = MENU_FAC_LIST_LEVEL_5.facilities_list_level5.title;
+
+
+
+
+const command = "!bastion @add 5 0";
 const parts = command.split(" ");
 const method = parts[1].split("@")[1];
 const method_cmd_id = parts[2];
@@ -609,23 +615,6 @@ if (method==="add"){
     add_facility(method_cmd_id, player);
 };
 log(viewPlayerFacilities(0))
-
-
-
-
-const main_menu_table = createTable(MENU_MAIN.main.buttons,"@menu #cmd_id");
-const main_menu_title = MENU_FAC_LIST_VIEW.FACILITIES_LIST_VIEW.title;
-
-const menu_fac_list_table = createTable(MENU_FAC_LIST_VIEW.FACILITIES_LIST_VIEW.buttons, "@facilities #cmd_id");
-const menu_fac_list_title = MENU_FAC_LIST_VIEW.FACILITIES_LIST_VIEW.title;
-
-
-const menu_fac_list_lvl5 = createTable(MENU_FAC_LIST_LEVEL_5.facilities_list_level5.buttons, "@add #cmd_id");
-const menu_fac_list_lvl5_t = MENU_FAC_LIST_LEVEL_5.facilities_list_level5.title;
-
-
-
-
 
 
 
@@ -649,4 +638,7 @@ const menu_fac_list_lvl5_t = MENU_FAC_LIST_LEVEL_5.facilities_list_level5.title;
 // log("Item count: ", output[1]);
 
 
+const COMMANDS_TABLE = {
+
+};
 
