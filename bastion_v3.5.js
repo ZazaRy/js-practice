@@ -566,7 +566,7 @@ const CMD_DAG_TABLE = {
 function createTable(btn_list, cmd_wrapper){
     let rows = [];
     const batched = Math.floor(btn_list.length/4);
-    const idx = btn_list.length * 4;
+    const idx = batched * 4;
     const remaining = btn_list % 4;
     for (let i = 0; i < batched; i++) {
         const compile_wrapper_0 = cmd_wrapper.replace("#cmd_id", btn_list[i*4].command);
