@@ -51,119 +51,6 @@ const FAC_SPECIAL_NAMES = Object.entries(FAC_SPECIAL_IDS).reduce((map,[name,id])
     return map;
 },{})
 
-const FACILITIES_LIST_VIEW = 0;
-const ORDERS_VIEW_ONGOING = 1;
-const INVENTORY_LIST = 2;
-const HELP_LIST = 3;
-
-const MENU_MAIN = {
-    main: {
-        title: "Bastion Main Menu",
-        buttons: [
-            {label:"Facilities List", command: FACILITIES_LIST_VIEW},
-            {label:"Ongoing Orders", command: ORDERS_VIEW_ONGOING},
-            {label:"Bastion Inventory", command: INVENTORY_LIST},
-            {label:"Bastion Help&Info", command: HELP_LIST},
-        ],
-    },
-    jump_menu: {
-        title: "Jump To...",
-        buttons : [
-        ],
-    },
-};
-
-
-const FACILITIES_LIST_LEVEL_5 = 5;
-const FACILITIES_LIST_LEVEL_9 = 6;
-const FACILITIES_LIST_LEVEL_13 = 7;
-const FACILITIES_LIST_LEVEL_17 = 8;
-
-const MENU_FAC_LIST_VIEW = {
-    FACILITIES_LIST_VIEW: {
-        title: "Bastion Facilities Lists By Level",
-        buttons : [
-            {label:"Lvl 5 Facilities", command: FACILITIES_LIST_LEVEL_5},
-            {label:"Lvl 9 Facilities", command: FACILITIES_LIST_LEVEL_9},
-            {label:"Lvl 13 Facilities", command: FACILITIES_LIST_LEVEL_13},
-            {label:"Lvl 17 Facilities", command: FACILITIES_LIST_LEVEL_17},
-        ],
-    },
-
-};
-
-
-const MENU_FAC_LIST_LEVEL_5 = {
-    facilities_list_level5:{
-        title: "Select Two Level 5 Facilities",
-        buttons : [
-            {label:"Arcane Study", command: FAC_SPECIAL_IDS.ARCANE_STUDY},
-            {label:"Armory", command: FAC_SPECIAL_IDS.ARMORY},
-            {label:"Barrack", command: FAC_SPECIAL_IDS.BARRACK},
-            {label:"Food Garden", command: FAC_SPECIAL_IDS.FOOD_GARDEN},
-            {label:"Herb Garden", command: FAC_SPECIAL_IDS.HERB_GARDEN},
-            {label:"Poison Garden", command: FAC_SPECIAL_IDS.POISON_GARDEN},
-            {label:"Decorative Garden", command: FAC_SPECIAL_IDS.DECORATIVE_GARDEN},
-            {label:"Library", command: FAC_SPECIAL_IDS.LIBRARY},
-            {label:"Smithy", command: FAC_SPECIAL_IDS.SMITHY},
-            {label:"Storehouse", command: FAC_SPECIAL_IDS.STOREHOUSE},
-            {label:"Workshop", command: FAC_SPECIAL_IDS.WORKSHOP},
-        ],
-    },
-};
-const MENU_FAC_LIST_LEVEL_9 = {
-    facilities_list_level9:{
-        title: "Select Two Level 9 Facilities",
-        buttons : [
-            {label:"Gaming Hall", command: FAC_SPECIAL_IDS.GAMING_HALL},
-            {label:"Greenhouse", command: FAC_SPECIAL_IDS.GREENHOUSE},
-            {label:"Laboratory", command: FAC_SPECIAL_IDS.LABORATORY},
-            {label:"Sacristy", command: FAC_SPECIAL_IDS.SACRISTY},
-            {label:"Scriptorium", command: FAC_SPECIAL_IDS.SCRIPTORIUM},
-            {label:"Stable", command: FAC_SPECIAL_IDS.STABLE},
-            {label:"Teleportation Circle", command: FAC_SPECIAL_IDS.TELEPORTATION_CIRCLE},
-            {label:"Theater", command: FAC_SPECIAL_IDS.THEATER},
-            {label:"Training Area", command: FAC_SPECIAL_IDS.TRAINING_AREA},
-            {label:"Trophy Room", command: FAC_SPECIAL_IDS.TROPHY_ROOM},
-        ],
-    },
-};
-
-const MENU_FAC_LIST_LEVEL_13 = {
-    facilities_list_level13:{
-        title: "Select Two Level 13 Facilities",
-        buttons : [
-            {label:"Archive", command: FAC_SPECIAL_IDS.ARCHIVE},
-            {label:"Meditation Chamber", command: FAC_SPECIAL_IDS.MEDITATION_CHAMBER},
-            {label:"Menagerie", command: FAC_SPECIAL_IDS.MENAGERIE},
-            {label:"Observatory", command: FAC_SPECIAL_IDS.OBSERVATORY},
-            {label:"Pub", command: FAC_SPECIAL_IDS.PUB},
-            {label:"Reliquary", command: FAC_SPECIAL_IDS.RELIQUARY},
-        ],
-    },
-};
-const MENU_FAC_LIST_LEVEL_17 = {
-    facilities_list_level17:{
-        title: "Select Two Level 17 Facilities",
-        buttons : [
-            {label:"Demiplane", command: FAC_SPECIAL_IDS.DEMIPLANE},
-            {label:"Baker's Guild", command: FAC_SPECIAL_IDS.BAKERS_GUILD},
-            {label:"Mason's Guild", command: FAC_SPECIAL_IDS.MASONS_GUILD},
-            {label:"Brewer's Guild", command: FAC_SPECIAL_IDS.BREWERS_GUILD},
-            {label:"Shipbuilder's Guild", command: FAC_SPECIAL_IDS.SHIPBUILDERS_GUILD},
-            {label:"Adventurer's Guild", command: FAC_SPECIAL_IDS.ADVENTURERS_GUILD},
-            {label:"Thieve's Guild", command: FAC_SPECIAL_IDS.THIEVES_GUILD},
-            {label:"Sanctum", command: FAC_SPECIAL_IDS.SANCTUM},
-            {label:"War Room", command: FAC_SPECIAL_IDS.WAR_ROOM},
-        ],
-    },
-};
-
-
-const BASTION_INPUT_COMMANDS_TABLE = {
-    command_id: new Uint8Array(64),
-};
-
 
 
 const TOTAL_PRODS = 49;
@@ -535,94 +422,115 @@ function  viewPlayerFacilities(player_id){
     return collect_fac_data;
 };
 
-
-
-function createRows(buttonData,cmd_wrapper) {
-    let rows = [];
-    for (let i = 0; i < buttonData.length; i += 2) {
-        let row = '<tr>';
-        row += createButton(buttonData[i],cmd_wrapper);
-        if (i + 1 < buttonData.length) {
-            row += createButton(buttonData[i + 1],cmd_wrapper);
-        }
-        row += '</tr>';
-        rows.push(row);
-    }
-    return rows;
-}
-
-
 const CMD_DAG_TABLE = {
-    root_cmds: ["@menu","@jump"],
-    menu: ["@facilities"],
-    facilities: ["@fac_lvl5", "@fac_lvl9", "@fac_lvl13", "@fac_lvl17"],
-    fac_lvl5: [], // TODO: Complete commands for all facilities
-    fac_lvl9: [],
-    fac_lvl13: [],
-    fac_lvl17: [],
+    root_cmds: ["@menu", "@jump"],//TODO: Decide how to deal with jump since I don't need it for the main menu.
+    menu: [
+        {name: "Facilities List", command: '@facilities'},
+        {name: "Ongoing Orders", command: '@orders'},
+        {name: "Bastion Inventory", command: '@binventory'},
+        {name: "Bastion Help&Info", command: '@hni'},
+    ],
+    facilities: [
+        {name: "Level 5", command:"@fac_lvl5"},
+        {name: "Level 9", command:"@fac_lvl9"},
+        {name: "Level 13", command:"@fac_lvl13"},
+        {name: "Level 17", command:"@fac_lvl17"},
+    ],
+    fac_lvl5: [
+        {name: "Arcane Study", id: 0},
+        {name: "Armory", id: 7},
+        {name: "Barrack", id: 11},
+        {name: "Food Garden", id: 21},
+        {name: "Herb Garden", id: 22},
+        {name: "Poison Garden", id: 23},
+        {name: "Decorative Garden", id: 24},
+        {name: "Library", id: 28},
+        {name: "Smithy", id: 5},
+        {name: "Storehouse", id: 8},
+        {name: "Workshop", id: 6}
+    ],
+    fac_lvl9: [
+        {name: "Gaming Hall", id: 9},
+        {name: "Greenhouse", id: 25},
+        {name: "Laboratory", id: 1},
+        {name: "Sacristy", id: 2},
+        {name: "Scriptorium", id: 4},
+        {name: "Stable", id: 10},
+        {name: "Teleportation Circle", id: 19},
+        {name: "Theater", id: 35},
+        {name: "Training Area", id: 36},
+        {name: "Trophy Room", id: 30}
+    ],
+    fac_lvl13: [
+        {name: "Archive", id: 27},
+        {name: "Meditation Chamber", id: 32},
+        {name: "Menagerie", id: 18},
+        {name: "Observatory", id: 33},
+        {name: "Pub", id: 29},
+        {name: "Reliquary", id: 26}
+    ],
+    fac_lvl17: [
+        {name: "Demiplane", id: 31},
+        {name: "Baker's Guild", id: 13},
+        {name: "Mason's Guild", id: 15},
+        {name: "Brewer's Guild", id: 14},
+        {name: "Shipbuilder's Guild", id: 16},
+        {name: "Adventurer's Guild", id: 12},
+        {name: "Thieve's Guild", id: 17},
+        {name: "Sanctum", id: 34},
+        {name: "War Room", id: 20}
+    ]
 };
 
 
-function createTable(btn_list, cmd_wrapper){
+
+function createTable(btn_list){
+    log(btn_list)
     let rows = [];
     const batched = Math.floor(btn_list.length/4);
     const idx = batched * 4;
     const remaining = btn_list % 4;
+    let btn_style = `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; white-space: normal; word-wrap: break-word; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="#cmd">#name</a></td>`;
     for (let i = 0; i < batched; i++) {
-        const compile_wrapper_0 = cmd_wrapper.replace("#cmd_id", btn_list[i*4].command);
-        const compile_wrapper_1 = cmd_wrapper.replace("#cmd_id", btn_list[(i*4)+1].command);
-        const compile_wrapper_2 = cmd_wrapper.replace("#cmd_id", btn_list[(i*4)+2].command);
-        const compile_wrapper_3 = cmd_wrapper.replace("#cmd_id", btn_list[(i*4)+3].command);
-        const button_style_0 = `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="${compile_wrapper_0}">${btn_list[i*4].label}</a></td>`;
-        const button_style_1 = `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="${compile_wrapper_1}">${btn_list[(i*4)+1].label}</a></td>`;
-        const button_style_2 = `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="${compile_wrapper_2}">${btn_list[(i*4)+2].label}</a></td>`;
-        const button_style_3 = `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="${compile_wrapper_3}">${btn_list[(i*4)+3].label}</a></td>`;
-        let row = '<tr>';
-        row += button_style_0;
-        row += button_style_1;
-        row += button_style_2;
-        row += button_style_3;
-        row += '</tr>';
+        const button_style_0 = btn_style
+        .replace("#cmd", btn_list[(i*4)].command)
+        .replace("#name",btn_list[(i*4).name]);
+        const button_style_1 = btn_style
+        .replace("#cmd", btn_list[(i*4)+1].command)
+        .replace("#name", btn_list[(i*4)+1].name)
+        const button_style_2 = btn_style
+        .replace("#cmd", btn_list[(i*4)+2].command)
+        .replace("#name", btn_list[(i*4)+2].name)
+        const button_style_3 = btn_style
+        .replace("#cmd", btn_list[(i*4)+3].command)
+        .replace("#name", btn_list[(i*4)+3].name)
+        const row = '<tr>'+button_style_0+button_style_1+button_style_2+button_style_3+'</tr>';
         rows.push(row);
     }
     if (remaining>0){
         for(let j = 0; j < remaining;j++){
-            const compile_wrapper = cmd.wrapper.replace("#cmd_id", btn_list[j+idx].command);
-            const button_style = `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="${compile_wrapper}">${btn_list[idx+j].label}</a></td>`;
-            let row = '<tr>';
-            row += button_style;
-            row = '</tr>';
+            const button_style = btn_style
+            .replace("#cmd", btn_list[j+idx].command)
+            .replace("#name", btn_list[j+idx].name)
+            const row = '<tr>'+button_style+'</tr>';
             rows.push(row);
         };
     };
+    const jmp_btn = `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="!bastion @jump_to">Go To...</a></td>`;
+    const row = "<tr>"+jmp_btn+"</tr>"
+    rows.push(row)
     return `<table style="width:100%; text-align:center;">${rows.join('')}</table>`;
 };
 
-const cmd_add = "!bastion @add 5 0";
-const cmd_rmv = "!bastion @remove 5 0";
-const cmd_view = "!bastion @remove 5 0";
-const parts = command.split(" ");
-const method = parts[1].split("@")[1];
-const method_cmd_id = parts[2];
-const player = parts[3];
-if (method==="add"){
-    add_facility(method_cmd_id, player);
-};
-log(viewPlayerFacilities(0))
+
+const command = "!bastion @menu"
+const menu_view = command.split(" ")[1].split("@")[1];
 
 
 
 
-const main_menu_table = createTable(MENU_MAIN.main.buttons,"@menu #cmd_id");
-const main_menu_title = MENU_FAC_LIST_VIEW.FACILITIES_LIST_VIEW.title;
-
-const menu_fac_list_table = createTable(MENU_FAC_LIST_VIEW.FACILITIES_LIST_VIEW.buttons, "@facilities #cmd_id");
-const menu_fac_list_title = MENU_FAC_LIST_VIEW.FACILITIES_LIST_VIEW.title;
-
-
-const menu_fac_list_lvl5 = createTable(MENU_FAC_LIST_LEVEL_5.facilities_list_level5.buttons, "@add #cmd_id");
-const menu_fac_list_lvl5_t = MENU_FAC_LIST_LEVEL_5.facilities_list_level5.title;
-
+const table_view = createTable(CMD_DAG_TABLE[menu_view])
+log(table_view)
 
 
 
