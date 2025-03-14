@@ -422,7 +422,7 @@ function  viewPlayerFacilities(player_id){
     return collect_fac_data;
 };
 
-const CMD_DAG_TABLE = {
+const CMD_ADJ_LIST_TABLE = {
     root_cmds: ["@menu", "@jump"],//TODO: Decide how to deal with jump since I don't need it for the main menu.
     menu: [
         {name: "Facilities List", command: '@facilities'},
@@ -529,7 +529,7 @@ const menu_view = command.split(" ")[1].split("@")[1];
 
 
 
-const table_view = createTable(CMD_DAG_TABLE[menu_view])
+const table_view = createTable(CMD_ADJ_LIST_TABLE[menu_view])
 log(table_view)
 
 
