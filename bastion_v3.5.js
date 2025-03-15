@@ -1,7 +1,46 @@
 const log = console.log;
 
-const FAC_COUNT = 37;
+// if (!state.MyBastion){
+//     state.MyBastion = {
+//         FAC_INTRINSICS: {
+//             name: new Uint8Array(37),
+//             size: new Uint8Array(37),
+//             hirelings: new Uint8Array(37),
+//             order_type: new Uint8Array(37),
+//             contains_prods: new BigUint64Array(37),
+//         },
+//         PLAYERS_ROLL20_PID_LOCAL_GID_TABLE: {
+//             "": {roll20_id: "", local_gid: 0},
+//             "": {roll20_id: "", local_gid: 1},
+//             "": {roll20_id: "", local_gid: 2},
+//             "": {roll20_id: "", local_gid: 3},
+//             "": {roll20_id: "", local_gid: 4},
+//             "": {roll20_id: "", local_gid: 5},
+//             "": {roll20_id: "", local_gid: 6},
+//             "": {roll20_id: "", local_gid: 7},
+//         },
+//         PLAYERS_ROLL20_PID_LOCAL_GID_REVERSE_TABLE: {
+//             0: {roll20_id: "", player_name: ""},
+//             1: {roll20_id: "", player_name: ""},
+//             2: {roll20_id: "", player_name: ""},
+//             3: {roll20_id: "", player_name: ""},
+//             4: {roll20_id: "", player_name: ""},
+//             5: {roll20_id: "", player_name: ""},
+//             6: {roll20_id: "", player_name: ""},
+//             7: {roll20_id: "", player_name: ""},
+//         },
+//         PLAYERS_INFO_FACILITY_TABLE: {
+//             facilities: new BigUint64Array(MAX_PLAYERS),
+//             scheduled_orderes: new BigUint64Array(MAX_PLAYERS),
+//         },
+//         PLAYERS_INFO_INVENTORY_TABLE: {
+//             items_name: new Uint8Array(FAC_PROD_IDS.TOTAL_PRODS*MAX_PLAYERS),
+//             items_count: new Uint8Array(FAC_PROD_IDS.TOTAL_PRODS*MAX_PLAYERS),
+//         },
+//     };
+// };
 const FAC_SPECIAL_IDS = {
+    FAC_COUNT: 37,
     //Craft - Order ID 0
     ARCANE_STUDY: 0,
     LABORATORY: 1,
@@ -53,8 +92,8 @@ const FAC_SPECIAL_NAMES = Object.entries(FAC_SPECIAL_IDS).reduce((map,[name,id])
 
 
 
-const TOTAL_PRODS = 49;
 const FAC_PROD_IDS = {
+    TOTAL_PRODS: 49,
     0: {name: "ARCANE_FOCUS", description: "PH", count: 0},
     1: "BOOK",
     2: "ALCHEMIST_SUPPLIES",
@@ -108,12 +147,12 @@ const FAC_PROD_IDS = {
 };
 
 //Product Header's Mask
-const HEADER_PROD_CRAFT = 1n << 63n;
-const HEADER_PROD_TRADE = 1n << 62n;
-const HEADER_PROD_RECRUIT = 1n << 60n;
-const HEADER_PROD_HARVEST = 1n << 59n;
-const HEADER_PROD_RESEARCH = 1n << 58n;
-const HEADER_PROD_EMPOWER = 1n << 57n;
+const HEADER_PROD_CRAFT = 1n << 55n;
+const HEADER_PROD_TRADE = 1n << 54n;
+const HEADER_PROD_RECRUIT = 1n << 53n;
+const HEADER_PROD_HARVEST = 1n << 52n;
+const HEADER_PROD_RESEARCH = 1n << 51n;
+const HEADER_PROD_EMPOWER = 1n << 50n;
 
 
 //Product Subtype's Mask
@@ -124,13 +163,12 @@ const COUNT_HARVESTABLES = 10n;
 const COUNT_RESEARCHABLES = 5n;
 const COUNT_EMPOWERABLES = 6n;
 
-const MASK_CRAFTABLES = HEADER_PROD_CRAFT | ((1n << COUNT_CRAFTABLES)-1n);
-const MASK_TRADEABLES = (HEADER_PROD_TRADE | ((1n << COUNT_TRADEABLES)-1n)) << COUNT_CRAFTABLES;
-const MASK_RECRUITABLES = (HEADER_PROD_RECRUIT | ((1n << COUNT_RECRUITABLES)-1n)) << (COUNT_CRAFTABLES+COUNT_TRADEABLES);
-const MASK_HARVESTABLES = (HEADER_PROD_HARVEST | ((1n << COUNT_HARVESTABLES)-1n)) << (COUNT_CRAFTABLES+COUNT_TRADEABLES+COUNT_RECRUITABLES);
-const MASK_RESEARCHABLES = HEADER_PROD_RESEARCH | ((1n << COUNT_RESEARCHABLES)-1n) << (COUNT_CRAFTABLES+COUNT_TRADEABLES+COUNT_RECRUITABLES+COUNT_HARVESTABLES);
-const MASK_EMPOWERABLES = (HEADER_PROD_EMPOWER | ((1n << COUNT_EMPOWERABLES)-1n)) << (COUNT_CRAFTABLES+COUNT_TRADEABLES+COUNT_RECRUITABLES+COUNT_HARVESTABLES+COUNT_RESEARCHABLES);
-log((1n<<39n)&MASK_RESEARCHABLES);
+const MASK_CRAFTABLES = ((1n << COUNT_CRAFTABLES)-1n);
+const MASK_TRADEABLES = ((1n << COUNT_TRADEABLES)-1n) << COUNT_CRAFTABLES;
+const MASK_RECRUITABLES = ((1n << COUNT_RECRUITABLES)-1n) << (COUNT_CRAFTABLES+COUNT_TRADEABLES);
+const MASK_HARVESTABLES =  ((1n << COUNT_HARVESTABLES)-1n) << (COUNT_CRAFTABLES+COUNT_TRADEABLES+COUNT_RECRUITABLES);
+const MASK_RESEARCHABLES = ((1n << COUNT_RESEARCHABLES)-1n) << (COUNT_CRAFTABLES+COUNT_TRADEABLES+COUNT_RECRUITABLES+COUNT_HARVESTABLES);
+const MASK_EMPOWERABLES =  ((1n << COUNT_EMPOWERABLES)-1n) << (COUNT_CRAFTABLES+COUNT_TRADEABLES+COUNT_RECRUITABLES+COUNT_HARVESTABLES+COUNT_RESEARCHABLES);
 
 const FAC_SIZES = {
     0: {size: 4, name: "Cramped"},
@@ -147,14 +185,16 @@ const ORDER_TYPES = {
     5: "EMPOWER",
 };
 
+
+
 const FAC_INTRINSICS = {
     name: new Uint8Array(37),
     size: new Uint8Array(37),
     hirelings: new Uint8Array(37),
     order_type: new Uint8Array(37),
     contains_prods: new BigUint64Array(37),
-    //Pulling a facility by collumn takes 4 bytes, so 60 bytes left to fill the cache line.
 };
+
 // CRAFT facilities
 FAC_INTRINSICS.order_type[0] = FAC_INTRINSICS.order_type[1] =
 FAC_INTRINSICS.order_type[2] = FAC_INTRINSICS.order_type[3] =
@@ -257,46 +297,42 @@ FAC_INTRINSICS.order_type[FAC_SPECIAL_IDS.DEMIPLANE] = FAC_INTRINSICS.order_type
 FAC_INTRINSICS.order_type[FAC_SPECIAL_IDS.OBSERVATORY] = FAC_INTRINSICS.order_type[FAC_SPECIAL_IDS.SANCTUM] =
 FAC_INTRINSICS.order_type[FAC_SPECIAL_IDS.THEATER] = FAC_INTRINSICS.order_type[FAC_SPECIAL_IDS.TRAINING_AREA] = 5;
 
-const MAX_PLAYERS = 8;
-//TODO: still work in progress here, haven't decided what to do with tihs
-const PLAYERS_SCHEDULE_TABLES = {
-    scheduled_orderes: new BigUint64Array(MAX_PLAYERS),
-};
 
 
-const PLAYER_ID_NAMES_TABLE = {
+
+const PLAYERS_ROLL20_PID_LOCAL_GID_TABLE = {
     GID: 0,
-    0: "",
-    1: "",
-    2: "",
-    3: "",
-    4: "",
-    5: "",
-    6: "",
-    7: "",
+    "": {roll20_id: "", local_gid: 0},
+    "": {roll20_id: "", local_gid: 1},
+    "": {roll20_id: "", local_gid: 2},
+    "": {roll20_id: "", local_gid: 3},
+    "": {roll20_id: "", local_gid: 4},
+    "": {roll20_id: "", local_gid: 5},
+    "": {roll20_id: "", local_gid: 6},
+    "": {roll20_id: "", local_gid: 7},
 };
 
-//This works for some reason, which is ridiculous.
-//the empty string is mapped to 7 different values.
-const PLAYERS_NAMES_ID_TABLE = {
-    "": 0,
-    "": 1,
-    "": 2,
-    "": 3,
-    "": 4,
-    "": 5,
-    "": 6,
-    "": 7,
+const PLAYERS_ROLL20_PID_LOCAL_GID_REVERSE_TABLE = {
+    0: {roll20_id: "", player_name: ""},
+    1: {roll20_id: "", player_name: ""},
+    2: {roll20_id: "", player_name: ""},
+    3: {roll20_id: "", player_name: ""},
+    4: {roll20_id: "", player_name: ""},
+    5: {roll20_id: "", player_name: ""},
+    6: {roll20_id: "", player_name: ""},
+    7: {roll20_id: "", player_name: ""},
 };
 
 
+const MAX_PLAYERS = 8;
 const PLAYERS_INFO_FACILITY_TABLE = {
     facilities: new BigUint64Array(MAX_PLAYERS),
+    scheduled_orders: new BigUint64Array(MAX_PLAYERS),
 };
 
 const PLAYERS_INFO_INVENTORY_TABLE = {
-    items_name: new Uint8Array(TOTAL_PRODS*MAX_PLAYERS),
-    items_count: new Uint8Array(TOTAL_PRODS*MAX_PLAYERS),
+    items_name: new Uint8Array(FAC_PROD_IDS.TOTAL_PRODS*MAX_PLAYERS),
+    items_count: new Uint8Array(FAC_PROD_IDS.TOTAL_PRODS*MAX_PLAYERS),
 };
 
 
@@ -328,22 +364,37 @@ function flsb(mask){
     return lsb;
 };
 
-function addPlayer(player_name){
-    const gid = PLAYER_ID_NAMES_TABLE.GID;
+function getPlayerGID(player_name){
+    return PLAYERS_ROLL20_PID_LOCAL_GID_TABLE[player_name].local_gid;
+};
+
+function getPlayerNameByGID(gid){
+    return PLAYERS_ROLL20_PID_LOCAL_GID_REVERSE_TABLE[gid].player_name;
+};
+
+function getPlayerNameByRoll20ID(roll20_playerid){
+    for (let i = 0; i < 8; i++){
+        if(PLAYERS_ROLL20_PID_LOCAL_GID_REVERSE_TABLE[i].roll20_id === roll20_playerid){
+            return PLAYERS_ROLL20_PID_LOCAL_GID_REVERSE_TABLE[i].player_name;
+        };
+    };
+};
+
+
+function addPlayer(player_name, roll20_playerid){
+    const gid = PLAYERS_ROLL20_PID_LOCAL_GID_TABLE.GID;
     if (gid >7){
         return "Max Players Capacity (8) reached";
     };
-    PLAYER_ID_NAMES_TABLE[gid] = player_name;
-    PLAYER_ID_NAMES_TABLE.GID++;
-    PLAYERS_NAMES_ID_TABLE[player_name] = gid;
-    return `Player ${player_name} registered.`
+    if (!PLAYERS_ROLL20_PID_LOCAL_GID_TABLE[player_name]){
+        PLAYERS_ROLL20_PID_LOCAL_GID_TABLE[player_name] = {roll20_id: roll20_playerid, local_gid: gid};
+        PLAYERS_ROLL20_PID_LOCAL_GID_REVERSE_TABLE[gid] = {roll20_id: roll20_playerid, player_name: player_name};
+        PLAYERS_ROLL20_PID_LOCAL_GID_TABLE.GID++;
+    }else{
+        return `${player_name} already exists`;
+    };
+    return `Player ${player_name} registered.`;
 };
-addPlayer("Storm")
-addPlayer("Cloudstrike")
-addPlayer("Octavius")
-log(PLAYER_ID_NAMES_TABLE)
-log(PLAYERS_NAMES_ID_TABLE)
-log(PLAYER_ID_NAMES_TABLE[2])
 
 function getFacilityOrderType(fac_id){
     const order_id = FAC_INTRINSICS.order_type[fac_id];
@@ -360,19 +411,19 @@ function remove_facility(fac_id, player_id){
 
 
 function start_order(prod_id,player_id){
-    PLAYERS_SCHEDULE_TABLES.scheduled_orderes[player_id] |= (1n << BigInt(prod_id));
+    PLAYERS_INFO_FACILITY_TABLE.scheduled_orders[player_id] |= (1n << BigInt(prod_id));
 };
 
 function finish_order(prod_id, player_id){
-    const totals = 59;
+    const totals = 49;
     const id_offset = totals*player_id;
     PLAYERS_INFO_INVENTORY_TABLE.items_name[prod_id+id_offset] = prod_id;
     PLAYERS_INFO_INVENTORY_TABLE.items_count[prod_id+id_offset] += 1;
-    PLAYERS_SCHEDULE_TABLES.scheduled_orderes[player_id] &= ~(1n << BigInt(prod_id));
+    PLAYERS_INFO_FACILITY_TABLE.scheduled_orders[player_id] &= ~(1n << BigInt(prod_id));
 };
 
 function viewPlayerActiveOrders(player_id){
-    const player_mask = PLAYERS_SCHEDULE_TABLES.scheduled_orderes[player_id];
+    const player_mask = PLAYERS_INFO_FACILITY_TABLE.scheduled_orders[player_id];
     const msb = fmsb(player_mask);
     let lsb = flsb(player_mask);
 
@@ -388,24 +439,24 @@ function viewPlayerActiveOrders(player_id){
 
 
 function viewPlayerInventory(player_id){
-    const id_w_offset = player_id*(TOTAL_PRODS+1);
-    const upper_bound = TOTAL_PRODS * (player_id+1);
+    const lower_bound = player_id*FAC_PROD_IDS.TOTAL_PRODS;
+    const upper_bound = lower_bound + FAC_PROD_IDS.TOTAL_PRODS;
     // const invs_name = PLAYERS_INFO_INVENTORY_TABLE.items_name[player_id]
     // const invs_count = PLAYERS_INFO_INVENTORY_TABLE.items_count[player_id]
     let collect_names = [];
     let collect_count = [];
-    for (let i = id_w_offset; i < upper_bound; i++){
-       if (PLAYERS_INFO_INVENTORY_TABLE.items_name[i] !== 0){
-            const prod_name = FAC_PROD_IDS[i];
+    for (let i = lower_bound; i <= upper_bound; i++){
+        const norm_idx = i % FAC_PROD_IDS.TOTAL_PRODS;
+       if (PLAYERS_INFO_INVENTORY_TABLE.items_name[lower_bound+norm_idx] !== 0){
+            const prod_name = FAC_PROD_IDS[norm_idx];
             collect_names.push(prod_name)
         };
-       if (PLAYERS_INFO_INVENTORY_TABLE.items_count[i] !== 0){
-            const count = PLAYERS_INFO_INVENTORY_TABLE.items_count[i];
+       if (PLAYERS_INFO_INVENTORY_TABLE.items_count[lower_bound+norm_idx] !== 0){
+            const count = PLAYERS_INFO_INVENTORY_TABLE.items_count[lower_bound+norm_idx];
             collect_count.push(count);
         };
 
     };
-    console.assert(collect_names.length === collect_count.length);
     return [collect_names, collect_count];
 };
 
@@ -415,7 +466,9 @@ function  viewPlayerFacilities(player_id){
     const lbound = flsb(facilities);
     let collect_fac_data = [];
     for (let i = lbound; i <= ubound; i++){
-        if ((facilities & (1n<<i))!==0){
+        //I have to use 0n here because Roll20 is using  Node and it does not do proper type coercion
+        //With Bun, locally, it's not need
+        if ((facilities & (1n<<i))!==0n){
             collect_fac_data.push(FAC_SPECIAL_NAMES[i])
         };
     };
@@ -423,138 +476,209 @@ function  viewPlayerFacilities(player_id){
 };
 
 const CMD_ADJ_LIST_TABLE = {
-    root_cmds: ["@menu", "@jump"],//TODO: Decide how to deal with jump since I don't need it for the main menu.
     menu: [
         {name: "Facilities List", command: '@facilities'},
         {name: "Ongoing Orders", command: '@orders'},
         {name: "Bastion Inventory", command: '@binventory'},
         {name: "Bastion Help&Info", command: '@hni'},
+        {name: "View Facilities", command: '@view_facilities'},
     ],
-    facilities: [
-        {name: "Level 5", command:"@fac_lvl5"},
-        {name: "Level 9", command:"@fac_lvl9"},
-        {name: "Level 13", command:"@fac_lvl13"},
-        {name: "Level 17", command:"@fac_lvl17"},
-    ],
+    facilities:{
+        header: "Facilities By Level",
+        buttons:[
+                    {name: "Level 5", command:"@fac_lvl5"},
+                    {name: "Level 9", command:"@fac_lvl9"},
+                    {name: "Level 13", command:"@fac_lvl13"},
+                    {name: "Level 17", command:"@fac_lvl17"},
+                ],
+        },
     fac_lvl5: [
-        {name: "Arcane Study", id: 0},
-        {name: "Armory", id: 7},
-        {name: "Barrack", id: 11},
-        {name: "Food Garden", id: 21},
-        {name: "Herb Garden", id: 22},
-        {name: "Poison Garden", id: 23},
-        {name: "Decorative Garden", id: 24},
-        {name: "Library", id: 28},
-        {name: "Smithy", id: 5},
-        {name: "Storehouse", id: 8},
-        {name: "Workshop", id: 6}
+        {name: "Arcane Study", command:"@add 0"},
+        {name: "Armory", command:"@add 7"},
+        {name: "Barrack", command:"@add 11"},
+        {name: "Food Garden", command:"@add 21"},
+        {name: "Herb Garden", command:"@add 22"},
+        {name: "Poison Garden", command:"@add 23"},
+        {name: "Decorative Garden", command:"@add 24"},
+        {name: "Library", command:"@add 28"},
+        {name: "Smithy", command:"@add 5"},
+        {name: "Storehouse", command:"@add 8"},
+        {name: "Workshop", command:"@add 6"}
     ],
     fac_lvl9: [
-        {name: "Gaming Hall", id: 9},
-        {name: "Greenhouse", id: 25},
-        {name: "Laboratory", id: 1},
-        {name: "Sacristy", id: 2},
-        {name: "Scriptorium", id: 4},
-        {name: "Stable", id: 10},
-        {name: "Teleportation Circle", id: 19},
-        {name: "Theater", id: 35},
-        {name: "Training Area", id: 36},
-        {name: "Trophy Room", id: 30}
+        {name: "Gaming Hall", command:"@add 9"},
+        {name: "Greenhouse", command:"@add 25"},
+        {name: "Laboratory", command:"@add 1"},
+        {name: "Sacristy", command:"@add 2"},
+        {name: "Scriptorium", command:"@add 4"},
+        {name: "Stable", command:"@add 10"},
+        {name: "Teleportation Circle", command:"@add 19"},
+        {name: "Theater", command:"@add 35"},
+        {name: "Training Area", command:"@add 36"},
+        {name: "Trophy Room", command:"@add 30"}
     ],
     fac_lvl13: [
-        {name: "Archive", id: 27},
-        {name: "Meditation Chamber", id: 32},
-        {name: "Menagerie", id: 18},
-        {name: "Observatory", id: 33},
-        {name: "Pub", id: 29},
-        {name: "Reliquary", id: 26}
+        {name: "Archive", command:"@add 27"},
+        {name: "Meditation Chamber", command:"@add 32"},
+        {name: "Menagerie", command:"@add 18"},
+        {name: "Observatory", command:"@add 33"},
+        {name: "Pub", command:"@add 29"},
+        {name: "Reliquary", command:"@add 26"}
     ],
     fac_lvl17: [
-        {name: "Demiplane", id: 31},
-        {name: "Baker's Guild", id: 13},
-        {name: "Mason's Guild", id: 15},
-        {name: "Brewer's Guild", id: 14},
-        {name: "Shipbuilder's Guild", id: 16},
-        {name: "Adventurer's Guild", id: 12},
-        {name: "Thieve's Guild", id: 17},
-        {name: "Sanctum", id: 34},
-        {name: "War Room", id: 20}
+        {name: "Demiplane", command:"@add 31"},
+        {name: "Baker's Guild", command:"@add 13"},
+        {name: "Mason's Guild", command:"@add 15"},
+        {name: "Brewer's Guild", command:"@add 14"},
+        {name: "Shipbuilder's Guild", command:"@add 16"},
+        {name: "Adventurer's Guild", command:"@add 12"},
+        {name: "Thieve's Guild", command:"@add 17"},
+        {name: "Sanctum", command:"@add 34"},
+        {name: "War Room", command:"@add 20"}
     ]
 };
 
 
 
 function createTable(btn_list){
-    log(btn_list)
-    let rows = [];
-    const batched = Math.floor(btn_list.length/4);
-    const idx = batched * 4;
-    const remaining = btn_list % 4;
-    let btn_style = `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; white-space: normal; word-wrap: break-word; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="#cmd">#name</a></td>`;
-    for (let i = 0; i < batched; i++) {
-        const button_style_0 = btn_style
-        .replace("#cmd", btn_list[(i*4)].command)
-        .replace("#name",btn_list[(i*4).name]);
-        const button_style_1 = btn_style
-        .replace("#cmd", btn_list[(i*4)+1].command)
-        .replace("#name", btn_list[(i*4)+1].name)
-        const button_style_2 = btn_style
-        .replace("#cmd", btn_list[(i*4)+2].command)
-        .replace("#name", btn_list[(i*4)+2].name)
-        const button_style_3 = btn_style
-        .replace("#cmd", btn_list[(i*4)+3].command)
-        .replace("#name", btn_list[(i*4)+3].name)
-        const row = '<tr>'+button_style_0+button_style_1+button_style_2+button_style_3+'</tr>';
-        rows.push(row);
-    }
-    if (remaining>0){
-        for(let j = 0; j < remaining;j++){
-            const button_style = btn_style
-            .replace("#cmd", btn_list[j+idx].command)
-            .replace("#name", btn_list[j+idx].name)
-            const row = '<tr>'+button_style+'</tr>';
-            rows.push(row);
-        };
-    };
-    const jmp_btn = `<td><a style="background-color:#8a2be2; color:white; padding:5px 10px; border-radius:5px; text-decoration:none; display:inline-block; text-align:auto; width:80px; height:160px; margin:2px;" href="!bastion @jump_to">Go To...</a></td>`;
-    const row = "<tr>"+jmp_btn+"</tr>"
-    rows.push(row)
-    return `<table style="width:100%; text-align:center;">${rows.join('')}</table>`;
+    log("Table: ", btn_list)
+    let table_HTML = '<table style="width:80%; margin:auto; border-collapse:collapse; background-color:#8a2be2;">';
+    table_HTML += `<tr><th style="background-color:#8a2be2; padding:10px;border-bottom:2px solid; font-size:16px; text-align:center;">${btn_list.header}</th></tr>`;
+
+    btn_list.buttons.forEach(option => {
+        table_HTML += `<tr><td style="padding:8px; color:white; border-bottom:1px solid white; text-align:center;"><a style="background-color:#8a2be2; width:auto;height:auto; text-decoration:none; display:block" href="!bastion ${option.command}">${option.name}</a></td></tr>`;
+
+    })
+    table_HTML += '</table>'
+
+    table_HTML += '<div style="text-align:center; margin-top:15px;">';
+    table_HTML += '<a style="background-color:#8a2be2; color:white; padding:8px 15px; border-radius:5px; text-decoration:none;" href="!bastion @menu">Return to Menu</a>';
+    table_HTML += '</div>'
+    return table_HTML
+};
+
+function createTableFacilitiesView(fac_list){
+    const formatted_facilities = fac_list.map(facility => {
+        return facility.replace("_"," ")
+        .split(" ")
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(" ");
+    });
+    let table_HTML = '<table style="width:80%; margin:auto; border-collapse:collapse; background-color:#8a2be2;">';
+    table_HTML += '<tr><th style="background-color:#8a2be2; padding:10px;border-bottom:2px solid; font-size:16px; text-align:center;">Your Facilities</th></tr>';
+
+    formatted_facilities.forEach(facility => {
+        table_HTML += `<tr><td style="padding:8px; color:white; border-bottom:1px solid #ddd; text-align:center;">${facility}</td></tr>`;
+    });
+
+
+    table_HTML += '</table>';
+
+    table_HTML += '<div style="text-align:center; margin-top:15px;">';
+    table_HTML += '<a style="background-color:#8a2be2; color:white; padding:8px 15px; border-radius:5px; text-decoration:none;" href="!bastion @menu">Return to Menu</a>';
+    table_HTML += '</div>';
 };
 
 
-const command = "!bastion @menu"
-const menu_view = command.split(" ")[1].split("@")[1];
+const NAVIGATOR = new Set(["@menu", "@facilities", "@fac_lvl5", "@fac_lvl9", "@fac_lvl13", "@fac_lvl17"])
+
+const FAC_OPS = new Set(["@add","@remove","@view_facilities"])
+const FAC_ORDERS_OPS = new Set(["@ord_start","@ord_finish","@ord_status","@ord_history"])
+
+let command = "!bastion @add 1";
+
+let cmd = command.split(" ")[1];
+
+const state = {MyBastion: {
+        FAC_INTRINSICS: {
+            name: new Uint8Array(37),
+            size: new Uint8Array(37),
+            hirelings: new Uint8Array(37),
+            order_type: new Uint8Array(37),
+            contains_prods: [],
+        },
+        PLAYERS_ROLL20_PID_LOCAL_GID_TABLE: {
+            "": {roll20_id: "", local_gid: 0},
+            "": {roll20_id: "", local_gid: 1},
+            "": {roll20_id: "", local_gid: 2},
+            "": {roll20_id: "", local_gid: 3},
+            "": {roll20_id: "", local_gid: 4},
+            "": {roll20_id: "", local_gid: 5},
+            "": {roll20_id: "", local_gid: 6},
+            "": {roll20_id: "", local_gid: 7},
+        },
+        PLAYERS_ROLL20_PID_LOCAL_GID_REVERSE_TABLE: {
+            0: {roll20_id: "", player_name: ""},
+            1: {roll20_id: "", player_name: ""},
+            2: {roll20_id: "", player_name: ""},
+            3: {roll20_id: "", player_name: ""},
+            4: {roll20_id: "", player_name: ""},
+            5: {roll20_id: "", player_name: ""},
+            6: {roll20_id: "", player_name: ""},
+            7: {roll20_id: "", player_name: ""},
+        },
+        PLAYERS_INFO_FACILITY_TABLE: {
+            facilities: [],
+            scheduled_orders: [],
+        },
+        PLAYERS_INFO_INVENTORY_TABLE: {
+            items_name: new Uint8Array(FAC_PROD_IDS.TOTAL_PRODS*MAX_PLAYERS),
+            items_count: new Uint8Array(FAC_PROD_IDS.TOTAL_PRODS*MAX_PLAYERS),
+        },
+    }
+}
+
+function saveState(){
+    for (let i = 0; i  < FAC_INTRINSICS.contains_prods.length; i++){
+        state.MyBastion.FAC_INTRINSICS.contains_prods[i] = FAC_INTRINSICS.contains_prods[i].toString();
+    };
+    state.MyBastion.PLAYERS_INFO_FACILITY_TABLE.facilities =
+        Array.from(PLAYERS_INFO_FACILITY_TABLE.facilities)
+        .map(n => n.toString());
+
+    state.MyBastion.PLAYERS_INFO_FACILITY_TABLE.scheduled_orders =
+        Array.from(PLAYERS_INFO_FACILITY_TABLE.scheduled_orders)
+        .map(n => n.toString());
+};
 
 
 
+command = "!bastion @facilities";
+cmd = command.split(" ")[1];
+if (NAVIGATOR.has(cmd)){
+    const data_nav = cmd.substring(1);
+    const table = createTable(CMD_ADJ_LIST_TABLE[data_nav]);
+    log(table)
 
-const table_view = createTable(CMD_ADJ_LIST_TABLE[menu_view])
-log(table_view)
+}else if(FAC_OPS.has(cmd)){
+    const fac_ops_type = command.split(" ")[1].substring(1);
+    const fac_id = command.split(" ")[2]
+    switch (fac_ops_type) {
+        case 'view_facilities':
+            const result = viewPlayerFacilities(0);
+            let button_layout = [];
+            for (let i = 0; i < result.length; i++){
+                const formatted_name = result[i].replace(/_/g," ")
+                .split(" ")
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(" ");
+                button_layout.push({name: formatted_name, command: ""});
+            };
+            log(table)
+            const table = createTable(button_layout)
+            break;
+        case 'add':
+            add_facility(fac_id, 0)
+            break;
+        case 'remove':
+            remove_facility(fac_id, 0)
+            log(viewPlayerFacilities(0))
+            break;
 
+    }
+};
+saveState();
 
-
-
-
-
-
-// log(start_order(33,0))
-// log(viewPlayerActiveOrders(0))
-// log(finish_order(33,0))
-// log(start_order(33,0))
-// log(start_order(33,0))
-// log(start_order(33,0))
-// log(start_order(33,0))
-// log(start_order(33,0))
-// log(finish_order(33,0))
-// log(finish_order(33,0))
-// log(finish_order(33,0))
-// log(finish_order(33,0))
-// log(finish_order(33,0))
-// log(viewPlayerActiveOrders(0))
-// let output = viewPlayerInventory(0);
-// log("Item name: ", output[0]);
-// log("Item count: ", output[1]);
 
 
 
