@@ -74,6 +74,8 @@ const PLAYERS = {
     next_available: 0,
     capacity: 8,
     players: [],
+
+    const capacity = 5
 };
 
 const NUM_FACILITIES = 37;
