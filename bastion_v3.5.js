@@ -46,6 +46,7 @@ const log = console.log;
     //
     // };
 
+
 const BASTION_META = {
     current_level: 0,
 };
@@ -573,54 +574,57 @@ function getFacilityOrderType(fac_id){
 };
 
 
-set_current_bastion_level(5)
-function add_facility(fac_id, player_id){
+
+set_current_bastion_level(17)
+function addFacility(fac_id, player_id){
+    console.assert(typeof player_id === 'number', "Player ID is not a number in addFacility")
+    console.assert(typeof fac_id === 'number', "Fac ID is not a number in addFacility")
     player_id = player_id.toString();
-    console.assert(player_id !== null, "Player ID is NULL in add_facility")
-    console.assert(fac_id !== null, "Fac ID is NULL in add_facility")
     const facility_level = FAC_INTRINSICS.level[fac_id];
     const facility_name = FAC_BY_ID[fac_id];
 
     const player_name = PLAYERS_ROLL20_PID_LOCAL_GID_REVERSE_TABLE[player_id].player_name;
 
+    if (facility_level > BASTION_META.current_level){
+        return new Uint8Array([0,ERRORS_META_REVERSE.fac_add,ERRORS_META_REVERSE.current_level_too_low])
+    };
+
 
     let fac_key_level;
     switch (facility_level) {
-        case 5: fac_key_level = "fac_perms_lvl_5"; break;
-        case 9: fac_key_level = "fac_perms_lvl_9"; break;
-        case 13: fac_key_level = "fac_perms_lvl_13"; break;
-        case 17: fac_key_level = "fac_perms_lvl_17"; break;
+        case 5: fac_key_level = 'fac_perms_lvl_5'; break;
+        case 9: fac_key_level = 'fac_perms_lvl_9'; break;
+        case 13: fac_key_level = 'fac_perms_lvl_13'; break;
+        case 17: fac_key_level = 'fac_perms_lvl_17'; break;
     };
 
     if (PLAYERS_INFO_FACILITY_TABLE[fac_key_level][player_id] >= 2){
-        log(`Player ${player_name} already has maximum facilities for level ${facility_level})`);
-        return null;
+        return new Uint8Array([0,ERRORS_META_REVERSE.fac_add,ERRORS_META_REVERSE.max_facilities_reached]);
     };
 
-    player_id = parseInt(player_id)
-    const player_fac_mask = PLAYERS_INFO_FACILITY_TABLE.facilities[player_id];
     //I am ont entirely convinced that this is worse or better than
     //taking care of Garden and Guildhall individually. The only two cases for this type of thing.
+    player_id = parseInt(player_id)
+    const player_fac_mask = PLAYERS_INFO_FACILITY_TABLE.facilities[player_id];
     if (fac_id >= 12 && fac_id <= 17){
         for (let i = 12n; i <= 17n; i++){
-            if ((player_fac_mask & (1n << i)) && (i !== BigInt(fac_id))){
+            if ((player_fac_mask & (1n << i)) && (i === BigInt(fac_id))){
                 log(`${player_name} already has a Guildhall`);
-                return null;
+                return new Uint8Array([0,ERRORS_META_REVERSE.fac_add,ERRORS_META_REVERSE.guildhall,fac_id])
             };
         };
     }
     else if (fac_id >= 21 && fac_id <= 24){
         for (let i = 21n; i <= 24n; i++){
-            if ((player_fac_mask & (1n << i)) && (i !== BigInt(fac_id))){
-                log(`${player_name} already has a Garden`);
-                return null
+            if ((player_fac_mask & (1n << i)) && (i === BigInt(fac_id))){
+                return new Uint8Array([0,ERRORS_META_REVERSE.fac_add,1])
             };
         };
     }
 
-    if ((player_fac_mask & 1n << BigInt(fac_id))!==0n){
+    else if ((player_fac_mask & 1n << BigInt(fac_id))!==0n){
         log(`${player_name} already has ${facility_name}`);
-        return null;
+        return new Uint8Array([0,1,5,fac_id])
     };
 
 
@@ -636,17 +640,24 @@ function remove_facility(fac_id, player_id){
 };
 
 
-function start_order(prod_id,player_id){
+function startOrder(prod_id,player_id){
+    console.assert(typeof player_id === 'number', `startOrder - player_id is not a number`);
+    console.assert(typeof prod_id === 'number', `startOrder - prod_id is not a number`);
     const facility_origin = FAC_BY_NAMES[getProductFacilityOrigin(prod_id)];
+    if(!facility_origin){
+        return `Product ${FAC_PROD_IDS[prod_id]} not found`
+    };
     const player_facilities = PLAYERS_INFO_FACILITY_TABLE.facilities[player_id];
     if((player_facilities & (1n<<BigInt(facility_origin)))!==0n){
         PLAYERS_INFO_FACILITY_TABLE.scheduled_orders[player_id] |= (1n << BigInt(prod_id));
-        return;
+        return true;
     }
-    return null;
+    return ;
 };
 
 function finish_order(prod_id, player_id){
+    console.assert(typeof player_id === 'number', `finish_order - player_id is not a number`);
+    console.assert(typeof prod_id === 'number', `finish_order- prod_id is not a number`);
     const totals = TOTAL_PRODS;
     const id_offset = totals*player_id;
     PLAYERS_INFO_INVENTORY_TABLE.items_name[prod_id+id_offset] = prod_id;
@@ -655,6 +666,7 @@ function finish_order(prod_id, player_id){
 };
 
 function viewPlayerActiveOrders(player_id){
+    console.assert(typeof player_id === 'number', `viewPlayerActiveOrders - player_id is not a number`);
     const player_mask = PLAYERS_INFO_FACILITY_TABLE.scheduled_orders[player_id];
     const msb = fmsb(player_mask);
     let lsb = flsb(player_mask);
@@ -665,14 +677,32 @@ function viewPlayerActiveOrders(player_id){
         };
         lsb++;
     };
-    if(products.length>0){
-        return products;
+    if(products.length===0){
+        return `You have no active orders`
     }
-    return null;
+    return products;
+};
+
+function playerCanAddFacilities(player_id, level){
+    console.assert(typeof player_id === 'number', `playerCanAddFacilities - player_id is not a number`);
+    const fac_perms_flags_lvl_5 = PLAYERS_INFO_FACILITY_TABLE.fac_perms_lvl_5[player_id]
+    const fac_perms_flags_lvl_9 = PLAYERS_INFO_FACILITY_TABLE.fac_perms_lvl_9[player_id]
+    const fac_perms_flags_lvl_13 = PLAYERS_INFO_FACILITY_TABLE.fac_perms_lvl_13[player_id]
+    const fac_perms_flags_lvl_17 = PLAYERS_INFO_FACILITY_TABLE.fac_perms_lvl_17[player_id]
+    switch (level) {
+        case 5:
+            return {fac_lvl_5_count: 2-fac_perms_flags_lvl_5};
+        case 9:
+            return {fac_lvl_9_count: 2-fac_perms_flags_lvl_9};
+        case 13:
+            return {fac_lvl_13_count: 2-fac_perms_flags_lvl_13};
+        case 17:
+            return {fac_lvl_17_count: 2-fac_perms_flags_lvl_17};
+    }
 };
 
 function remove_underscores_and_fix_fac_upper_lower_case(name){
-    console.assert(name !== 'string', `Name ${name} is not a string`);
+    console.assert(typeof name === 'string', `remove_underscores_and_fix_fac_upper_lower_case Name ${name} is not a string`);
     return name
     .replace(/_/g, " ")
     .split(" ")
@@ -681,15 +711,17 @@ function remove_underscores_and_fix_fac_upper_lower_case(name){
 };
 
 function getProductFacilityOrigin(prod_id){
+    console.assert(typeof prod_id === 'number', `getProductFacilityOrigin - prod_id is not a number`);
     for(let i = 0n; i<FAC_INTRINSICS.contains_prods.length;i++){
         if ((FAC_INTRINSICS.contains_prods[i] & (1n<<BigInt(prod_id))) !== 0n){
             return FAC_BY_ID[i];
         };
     };
-    return null
+    return false;
 };
 
 function viewPlayerInventory(player_id){
+    console.assert(typeof player_id === 'number', `viewPlayerInventory - player_id is not a number`);
     const lower_bound = player_id*TOTAL_PRODS;
     const upper_bound = lower_bound + TOTAL_PRODS;
     let collect_names = [];
@@ -710,6 +742,7 @@ function viewPlayerInventory(player_id){
 };
 
 function  viewPlayerFacilities(player_id){
+    console.assert(typeof player_id === 'number', `viewPlayerFacilities - player_id is not a number`);
     const facilities = PLAYERS_INFO_FACILITY_TABLE.facilities[player_id]
     const ubound = fmsb(facilities);
     const lbound = flsb(facilities);
@@ -771,6 +804,29 @@ const CMD_DM_ADJ_LIST_TABLE = {
 };
 
 
+function construct_player_buttons_bylvl(player_id, fac_lvl, fac_for_lvlx_checked){
+    console.assert(typeof player_id === 'number', "construct_player_buttons_bylvl - Player ID is not a number");
+    const player_facilities = PLAYERS_INFO_FACILITY_TABLE.facilities[player_id];
+    const fac_buttons = [];
+    const fac_count = BigInt(FAC_BY_NAMES.FAC_COUNT);
+    for(let i = 0n; i < fac_count; i++){
+        if (((player_facilities & (1n<<i))===0n) && (fac_for_lvlx_checked) && (FAC_INTRINSICS.level[i]===fac_lvl)){
+            const fac_name_formatted = remove_underscores_and_fix_fac_upper_lower_case(FAC_BY_ID[i]);
+            fac_buttons.push(
+                {name: `${fac_name_formatted}`, command: `@fac_add ${Number(i)}`}
+            )
+        };
+    }
+    if(fac_buttons.length>0){
+        return fac_buttons;
+    }
+    return {
+        buttons: [
+            {name: `No facilities found. Go to your facilities`, command: `@fac_view ${player_id}`}
+        ]
+    }
+};
+
 //TODO: Rename since it's not really an adjacency list anymore.
 const CMD_ADJ_LIST_TABLE = {
     menu: {
@@ -817,63 +873,43 @@ const CMD_ADJ_LIST_TABLE = {
         },
     fac_lvl5: {
         header: "Level 5 Facilities",
-        buttons:[
-                    {name: "Arcane Study", command:"@fac_add 0"},
-                    {name: "Armory", command:"@fac_add 7"},
-                    {name: "Barrack", command:"@fac_add 11"},
-                    {name: "Food Garden", command:"@fac_add 21"},
-                    {name: "Herb Garden", command:"@fac_add 22"},
-                    {name: "Poison Garden", command:"@fac_add 23"},
-                    {name: "Decorative Garden", command:"@fac_add 24"},
-                    {name: "Library", command:"@fac_add 28"},
-                    {name: "Smithy", command:"@fac_add 5"},
-                    {name: "Storehouse", command:"@fac_add 8"},
-                    {name: "Workshop", command:"@fac_add 6"}
-                ],
+        buttons: (player_id) => {
+            const level_5 = 5;
+            const fac_for_lvl5_checked = playerCanAddFacilities(player_id, level_5);
+            return construct_player_buttons_bylvl(player_id, level_5, fac_for_lvl5_checked);
+        },
     },
     fac_lvl9: {
         header: "Level 9 Facilities",
-        buttons:[
-                    {name: "Gaming Hall", command:"@fac_add 9"},
-                    {name: "Greenhouse", command:"@fac_add 25"},
-                    {name: "Laboratory", command:"@fac_add 1"},
-                    {name: "Sacristy", command:"@fac_add 2"},
-                    {name: "Scriptorium", command:"@fac_add 4"},
-                    {name: "Stable", command:"@fac_add 10"},
-                    {name: "Teleportation Circle", command:"@fac_add 19"},
-                    {name: "Theater", command:"@fac_add 35"},
-                    {name: "Training Area", command:"@fac_add 36"},
-                    {name: "Trophy Room", command:"@fac_add 30"}
-                ],
+        buttons: (player_id) => {
+            const level_9 = 9;
+            const fac_for_lvl9_checked = playerCanAddFacilities(player_id, level_9);
+            return construct_player_buttons_bylvl(player_id, level_9, fac_for_lvl9_checked);
+        },
     },
     fac_lvl13: {
         header: "Level 13 Facilities",
-        buttons:[
-                    {name: "Archive", command:"@fac_add 27"},
-                    {name: "Meditation Chamber", command:"@fac_add 32"},
-                    {name: "Menagerie", command:"@fac_add 18"},
-                    {name: "Observatory", command:"@fac_add 33"},
-                    {name: "Pub", command:"@fac_add 29"},
-                    {name: "Reliquary", command:"@fac_add 26"}
-                ],
+        buttons: (player_id) => {
+            const level_13 = 13;
+            const fac_for_lvl13_checked = playerCanAddFacilities(player_id, level_13);
+            return construct_player_buttons_bylvl(player_id, level_13, fac_for_lvl13_checked);
+        },
     },
     fac_lvl17: {
         header: "Level 17 Facilities",
-        buttons: [
-                    {name: "Demiplane", command:"@fac_add 31"},
-                    {name: "Baker's Guild", command:"@fac_add 13"},
-                    {name: "Mason's Guild", command:"@fac_add 15"},
-                    {name: "Brewer's Guild", command:"@fac_add 14"},
-                    {name: "Shipbuilder's Guild", command:"@fac_add 16"},
-                    {name: "Adventurer's Guild", command:"@fac_add 12"},
-                    {name: "Thieve's Guild", command:"@fac_add 17"},
-                    {name: "Sanctum", command:"@fac_add 34"},
-                    {name: "War Room", command:"@fac_add 20"}
-        ],
+        buttons: (player_id) => {
+            const level_17 = 17;
+            const fac_for_lvl17_checked = playerCanAddFacilities(player_id, level_17);
+            return construct_player_buttons_bylvl(player_id, level_17, fac_for_lvl17_checked);
+        },
     },
     fac_add: (fac_id,player_id) => {
-        const facility_result = add_facility(fac_id,player_id);
-        if (!facility_result){log("Already has facility")};
+        console.assert(typeof fac_id==='number', "Facility name is not a string!");
+        console.assert(typeof player_id==='number', "Player ID is not a number!");
+        const facility_result = addFacility(fac_id,player_id);
+        if (!facility_result){
+            return facility_result;
+        };
         const fac_name_unformatted = facility_result[0];
         const fac_name_formatted = remove_underscores_and_fix_fac_upper_lower_case(facility_result[0]);
         return {
@@ -885,28 +921,33 @@ const CMD_ADJ_LIST_TABLE = {
         }
     },
     fac_editview: (fac_name, player_id) => {
+        console.assert(typeof fac_name==='string', "Facility name is not a string!");
+        console.assert(typeof player_id==='number', "Player ID is not a number!");
         const fac_id = FAC_BY_NAMES[fac_name];
         const formatted_name = remove_underscores_and_fix_fac_upper_lower_case(fac_name);
         const fac_player_orders = PLAYERS_INFO_FACILITY_TABLE.scheduled_orders[player_id];
-        const fac_comp_buttons = []
+        const fac_comp_buttons = [];
         const fac_prods = FAC_INTRINSICS.contains_prods[fac_id];
         const fac_mask_start = flsb(fac_prods);
         const fac_mask_stop = fmsb(fac_prods);
 
         for (let i = fac_mask_start; i <= fac_mask_stop; i++){
             if ((fac_prods & (1n<<i)) !== 0n){
-                const format_order_name = remove_underscores_and_fix_fac_upper_lower_case(FAC_PROD_IDS[i])
-                log(format_order_name)
-                fac_comp_buttons.push({name: `Start order for ${format_order_name}`, command: `@order_start ${FAC_PROD_IDS[i]}`})
+                const format_order_name = remove_underscores_and_fix_fac_upper_lower_case(FAC_PROD_IDS[i]);
+                fac_comp_buttons.push({name: `Start order for ${format_order_name}`, command: `@order_start ${FAC_PROD_IDS[i]}`});
             };
         }
 
         const player_mask_start = fmsb(fac_player_orders);
         const player_mask_stop = flsb(fac_player_orders);
+        const active_orders_buttons = [];
         if(fac_player_orders!==0n){
             for (let i = player_mask_start; i <= player_mask_stop; i++ ){
+                active_orders_buttons.push({
+                    name: `Active Order:`
+                });
             }
-        }
+        };
 
         return {
             header: `Currently Viewing ${formatted_name}`,
@@ -914,23 +955,25 @@ const CMD_ADJ_LIST_TABLE = {
         };
     },
     orders:{
-        heaader: 'Your Current Orders',
+        header: 'Your Current Orders',
         buttons: (player_id) => {
-            console.assert(typeof player_id === 'number');
+            console.assert(typeof player_id === 'number',"CMD_ADJ_LIST_TABLE.orders: Player ID is not a number!");
             const player_orders = viewPlayerActiveOrders(player_id);
+            if(!player_orders){
+                return [
+                    [{name:'No orders scheduled. Click to view facilities', command: '!bastion @facilities'}]
+                ]
+            };
             const prod_buttons = [];
-            for (let i = 0; i < player_orders.length; i++){
+            for (let i = 0; i < player_orders?.length; i++){
                 const prod_name = remove_underscores_and_fix_fac_upper_lower_case(FAC_PROD_IDS[player_orders[i]]);
                 const facility_origin_formatted = remove_underscores_and_fix_fac_upper_lower_case(getProductFacilityOrigin(player_orders[i]));
                 const facility_origin_unformatted = getProductFacilityOrigin(player_orders[i]);
                 prod_buttons.push({
-                    name: `Order: ${prod_name} Facility: ${facility_origin_formatted}`, command: `@fac_editview ${[facility_origin_unformatted]}`
+                    name: `Product: ${prod_name} Facility: ${facility_origin_formatted}`, command: `@fac_editview ${[facility_origin_unformatted]}`
                 });
             }
-            if (prod_buttons.length > 0){
-                return prod_buttons;
-            }
-            return null;
+            return prod_buttons;
         },
     },
     //Not using product id as param here, because in fac_editview I am doing @order_start + fac name
@@ -938,8 +981,11 @@ const CMD_ADJ_LIST_TABLE = {
     //Everything works locally but then I have to adjust on roll20, so I'll instead just deal with the result
     //and convert internally in the function's scope into their ids.
     ord_start: (product_name, player_id) => {
+        console.assert(typeof product_name==='string', "Product name is not a string");
+        console.assert(typeof player_id==='number', "Player ID is not a number");
         const product_id = FAC_PROD_NAMES[product_name];
         const fac_player_orders = viewPlayerActiveOrders(player_id);
+        if(fac_player_orders.length>0){return null};
         const product_name_formatted = remove_underscores_and_fix_fac_upper_lower_case(FAC_PROD_IDS[product_id]);
         for(let i = 0; i < fac_player_orders.length; i++){
             if((Number(fac_player_orders[i]) === product_id)){
@@ -952,7 +998,10 @@ const CMD_ADJ_LIST_TABLE = {
                 };
             };
         };
-        start_order(product_id, player_id);
+        const started_order = startOrder(product_id, player_id);
+        if(!started_order){
+            return started_order;
+        };
         return {
             header: `Scheduled Order For ${product_name_formatted}`,
             buttons: [{
@@ -962,8 +1011,12 @@ const CMD_ADJ_LIST_TABLE = {
     },
     ord_finish: (product_id, player_id) => {
         const fac_player_orders = viewPlayerActiveOrders(player_id);
+
+        //Player has no active orders
+        if(fac_player_orders.length>0){return null};
+
         const product_name_formatted = remove_underscores_and_fix_fac_upper_lower_case(FAC_PROD_IDS[product_id]);
-        for(let i=0; i < fac_player_orders.length; i++){
+        for(let i=0; i < fac_player_orders?.length; i++){
             if(Number(fac_player_orders[i]) !== product_id){
                 return {
                     header: `${product_name_formatted} Not Found As Scheduled`,
@@ -984,8 +1037,13 @@ const CMD_ADJ_LIST_TABLE = {
     },
     ord_status: (player_id) => {
         const fac_player_orders = viewPlayerActiveOrders(player_id);
+
+        //Player has no active orders
+        if(fac_player_orders.length>0){
+            return null//TODO: Replace null with an actual header / button object
+        };
+
         const fac_player_orders_buttons = [];
-        if (fac_player_orders.length===0){return `No orders scheduled`}
         for (let i = 0; i < fac_player_orders.length; i++){
             const product_id = Number(fac_player_orders[i])
             const product_name_formatted = remove_underscores_and_fix_fac_upper_lower_case(FAC_PROD_IDS[product_id]);
@@ -1006,10 +1064,14 @@ function createTableNavMenu(btn_list, gm_menu=false){
     if (gm_menu){main_menu = "@gm_menu"};
     let table_HTML = '<table style="width:80%; margin:auto; border-collapse:collapse; background-color:#8a2be2;">';
     table_HTML += `<tr><th style="background-color:#8a2be2; padding:10px;border-bottom:2px solid; font-size:16px; text-align:center;">${btn_list.header}</th></tr>`;
-    btn_list.buttons.forEach(option => {
-        table_HTML += `<tr><td style="padding:8px; color:white; border-bottom:1px solid white; text-align:center;"><a style="background-color:#8a2be2; width:auto;height:auto; text-decoration:none; display:block" href="!bastion ${option.command}">${option.name}</a></td></tr>`;
+    const buttons = btn_list.buttons;
 
-    });
+    for (let i = 0; i < buttons.length;i++){
+        table_HTML += `<tr><td style="padding:8px; color:white; border-bottom:1px solid white; text-align:center;"><a style="background-color:#8a2be2; width:auto;height:auto; text-decoration:none; display:block" href="!bastion ${buttons[i].command}">${buttons[i].name}</a></td></tr>`;
+        log(buttons[i].name)
+        log(buttons[i].command)
+    }
+
     table_HTML += '</table>';
 
     table_HTML += '<div style="text-align:center; margin-top:15px;">';
@@ -1018,16 +1080,110 @@ function createTableNavMenu(btn_list, gm_menu=false){
     return table_HTML;
 };
 
+
+//TODO: Add more GM commands / remove unnecessary ones ( maybe automatically add players the first time they login ).
 const NAVIGATOR_GM_MENU = new Set(["@gm_menu", "@gm_add_unreg_players", "@gm_remove_reg_players", "@gm_timeskip"]);
 
-const NAVIGATOR_MENU = new Set(["@menu", "@facilities", "@fac_lvl5", "@fac_lvl9", "@fac_lvl13", "@fac_lvl17"]);
+const NAVIGATOR_MENU = new Set(["@menu", "@facilities", "@orders", "@fac_lvl5", "@fac_lvl9", "@fac_lvl13", "@fac_lvl17"]);
 const NAVIGATOR_FAC_OPS = new Set(["@fac_add","@fac_remove","@fac_view","@fac_editview"]);
 const NAVIGATOR_FAC_ORDERS_OPS = new Set(["@ord_start","@ord_finish","@ord_status","@ord_history"]);
 
+
+const ERRORS_META = {
+    0: "gm_menu",
+    1: "gm_add_unreg_players",
+    2: "gm_remove_reg_players",
+    3: "gm_timeskip",
+    4: "menu",
+    5: "facilities",
+    6: "orders",
+    7: "fac_lvl5",
+    8: "fac_lvl9",
+    9: "fac_lvl13",
+    10: "fac_lvl17",
+    11: "fac_add",
+    12: "fac_remove",
+    13: "fac_view",
+    14: "fac_editview",
+    15: "ord_start",
+    16: "ord_finish",
+    17: "ord_status",
+    18: "ord_history",
+    19: "garden",
+    20: "guildhall",
+    21: "fac_duplicate",
+    22: "current_level_too_low",
+    23: "test_function",
+};
+const ERRORS_META_REVERSE = Object.entries(ERRORS_META).reduce((map, [id, name]) => {
+    map[name] = id;
+    return map;
+},{})
+
+
+const NAV_GM_MENU_ERRORS = {
+   //TODO: Consider which gm commands can have erros
+};
+
+const NAV_ERROR_HANDLER = {
+    gm_menu: {},
+    gm_add_unreg_players: {},
+    gm_remove_reg_players: {},
+    gm_timeskip: {},
+    menu: {},
+    facilities: {},
+    orders: {},
+    fac_lvl5: {},
+    fac_lvl9: {},
+    fac_lvl13: {},
+    fac_lvl17: {},
+    fac_add: {
+        garden: (fac_id) => {
+            return `You can only have one Garden Type. You currently own a ${FAC_BY_ID[fac_id]}`;
+        },
+        guildhall: (fac_id) => {
+            return `You can only have one Guildhall Type. You currently own a ${FAC_BY_ID[fac_id]}`;
+        },
+        fac_duplicate: (fac_id) => {
+            return `You already own a ${FAC_BY_ID[fac_id]}`;
+        },
+        current_level_too_low: () => `Cannot add this facility. The game's current Tier Facility Level is ${getCurrentBastionLevel()}`,
+    },
+    fac_remove: {},
+    fac_view: {},
+    fac_editview: {},
+    ord_start: {},
+    ord_finish: {},
+    ord_status: {},
+    ord_history: {},
+};
+
 addPlayer("Storm");
-add_facility(28,0)
-add_facility(5,0)
-start_order(12,0)
+addFacility(17,0)
+const fac_cmd = 'fac_add';
+const fac_id = '0';
 
 
-log(CMD_ADJ_LIST_TABLE["orders"].buttons(0))
+
+
+
+
+const result = addFacility(17,0)
+log(result)
+if (result[0]===0){
+    let idx = 1;
+    let current_depth = ERRORS_META[result[idx]]
+    let next = NAV_ERROR_HANDLER[current_depth]
+    while(NAV_ERROR_HANDLER[current_depth]){
+        idx++;
+        current_depth = next[ERRORS_META[result[idx]]];
+        log("While loop: ", current_depth)
+        if(typeof current_depth === 'function'){
+            const func_cmd_id = result[idx+1]
+            log(current_depth(func_cmd_id))
+            break
+        };
+        next = current_depth[result[idx+1]];
+    }
+};
+
