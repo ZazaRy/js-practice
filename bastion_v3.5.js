@@ -194,19 +194,23 @@ const ERROR_HANDLER = {
     fac_lvl17: {},
     fac_add: {
         garden: (fac_name) => {
-            return [-1,`You can only have one Garden Type. You currently own a ${fac_name}`];
+            const format_name = remove_underscores_and_fix_fac_upper_lower_case(fac_name)
+            return [-1,`You can only have one Garden Type. You currently own a ${format_name}`];
         },
         guildhall: (fac_name) => {
-            return [-1,`You can only have one Guildhall Type. You currently own a ${fac_name}`];
+            const format_name = remove_underscores_and_fix_fac_upper_lower_case(fac_name)
+            return [-1,`You can only have one Guildhall Type. You currently own a ${format_name}`];
         },
         fac_duplicate: (fac_name) => {
-            return [-1,`You already own ${fac_name}`];
+            const format_name = remove_underscores_and_fix_fac_upper_lower_case(fac_name)
+            return [-1,`You already own ${format_name}`];
         },
         current_level_too_low: (bastion_tier_level) => {
             return [-1,`Cannot add this facility. The Bastion's Tier Level is ${bastion_tier_level}`];
             },
         fac_level_too_high: (fac_name,fac_level, bastion_tier_level) => {
-            return [-1,`Cannot add ${fac_name} of level ${fac_level} when the Bastion's Tier Level is ${bastion_tier_level}`];
+            const format_name = remove_underscores_and_fix_fac_upper_lower_case(fac_name)
+            return [-1,`Cannot add ${format_name} of level ${fac_level} when the Bastion's Tier Level is ${bastion_tier_level}`];
         },
         reached_max_for_level: [-1,`You reached the maximum number of facilities for this level.`],
 
@@ -215,7 +219,12 @@ const ERROR_HANDLER = {
     fac_view: {},
     fac_editview: {
     },
-    ord_start: {},
+    ord_start: {
+        already_queued: (prod_id) => {
+            const format_name = remove_underscores_and_fix_fac_upper_lower_case(FAC_PROD_IDS[prod_id])
+            return [-1,`${format_name} Already In Queue`];
+        },
+    },
     ord_finish: {},
     ord_status: {
         no_active_orders: [-1,"You have no active orders"]
@@ -224,11 +233,9 @@ const ERROR_HANDLER = {
 };
 
 const BASTION_META = {
-    active_tier: 5,
-    players_can_add_initalised: false,
+    active_tier: 0,
     fac_levels_for_tier: new Uint8Array([5,9,13,17]),
     fac_max_for_level: new Uint8Array([2,4,6,8]),
-    fac_av_to_add: null,
 };
 
 function get_current_bastion_tier(){
@@ -243,17 +250,10 @@ function set_cur_bastion_lvl_and_av_to_add(level){
         17: 3,
     };
     BASTION_META.active_tier = ACTIVE_TIER[level];
-    for(let i = 0; i < 8; i++){
-        for(let j = 0; j < FAC_BY_NAMES.FAC_COUNT;j++){
-            if(FAC_INTRINSICS.level[j] === level){
-                BASTION_META.fac_av_to_add[i].add(j);
-            };
-        };
-    }
 };
 
 const FAC_BY_NAMES = {
-    FAC_COUNT: 37,
+    length: 37,
     //Craft - Order ID 0
     ARCANE_STUDY: 0,
     LABORATORY: 1,
@@ -303,6 +303,7 @@ const FAC_BY_ID = Object.entries(FAC_BY_NAMES).reduce((map,[name,id]) => {
     return map;
 },{})
 
+
 const FAC_MORE_THAN_ONE = new Set(
     [FAC_BY_NAMES.BARRACK,
     FAC_BY_NAMES.HERB_GARDEN,
@@ -313,8 +314,10 @@ const FAC_MORE_THAN_ONE = new Set(
     FAC_BY_NAMES.TRAINING_AREA,]
 );
 
+
+
 const FAC_PROD_IDS = {
-    TOTAL_PRODS: 49,
+    length: 49,
     0: "ARCANE_FOCUS",
     1: "BOOK",
     2: "ALCHEMIST_SUPPLIES",
@@ -368,7 +371,7 @@ const FAC_PROD_IDS = {
 };
 
 const FAC_PROD_NAMES = Object.entries(FAC_PROD_IDS).reduce((map,[id,name]) => {
-    map[name] = id;
+    map[name] = parseInt(id);
     return map;
 },{});
 
@@ -701,12 +704,12 @@ const ORDER_TYPES = {
 };
 
 const FAC_INTRINSICS = {
-    name: new Uint8Array(37),
-    size: new Uint8Array(37),
-    level: new Uint8Array(37),
-    hirelings: new Uint8Array(37),
-    order_type: new Uint8Array(37),
-    prods_contained: new BigUint64Array(37),
+    name: new Uint8Array(FAC_BY_NAMES.FAC_COUNT),
+    size: new Uint8Array(FAC_BY_NAMES.FAC_COUNT),
+    level: new Uint8Array(FAC_BY_NAMES.FAC_COUNT),
+    hirelings: new Uint8Array(FAC_BY_NAMES.FAC_COUNT),
+    order_type: new Uint8Array(FAC_BY_NAMES.FAC_COUNT),
+    prods_contained: new BigUint64Array(FAC_BY_NAMES.FAC_COUNT),
 };
 
 // Assign level for each facility type
@@ -974,39 +977,29 @@ let PLAYERS_ROLL20_PID_LOCAL_GID_REVERSE_TABLE = {
 
 const ROLL20_ID_LOOKUP = new Set()
 
+const PLAYERS_PERM_TABLE = {
+    type: (type_name) => {
+        return type_name;
+    },
+    payload: (type_count) => {
+        return new BigUint64Array(type_count*8)
+    },
+}
+const fac_avail_perm_table = {
+    type: PLAYERS_PERM_TABLE.type("facility"),
+    payload: PLAYERS_PERM_TABLE.payload(FAC_BY_NAMES.FAC_COUNT),
+}
+
 
 const MAX_PLAYERS = 8;
 const PLAYERS_INFO_FACILITY_TABLE = {
     facilities: new BigUint64Array(MAX_PLAYERS),
-    facilitie_count: new Uint8Array(MAX_PLAYERS),
+    facility_count: new Uint8Array(MAX_PLAYERS),
     scheduled_orders: new BigUint64Array(MAX_PLAYERS),
-    available_orders: new Uint8Array(MAX_PLAYERS),
 };
 
-if (!BASTION_META.players_can_add_initalised){
-    const FAC_PLAYERS_AVAILABLE_TO_ADD = (() => {
-        const accum = {
-            0: new Set(),
-            1: new Set(),
-            2: new Set(),
-            3: new Set(),
-            4: new Set(),
-            5: new Set(),
-            6: new Set(),
-            7: new Set(),
-        };
-        for (let i = 0; i < 8; i++){
-            for(let j = 0; j < FAC_BY_NAMES.FAC_COUNT; j++){
-                const bastion_tier_level = BASTION_META.active_tier;
-                if(FAC_INTRINSICS.level[j] === bastion_tier_level){
-                    accum[i].add(j);
-                }
-            }
-        };
-        return accum;
-    })();
-    BASTION_META.fac_av_to_add = FAC_PLAYERS_AVAILABLE_TO_ADD;
-    BASTION_META.players_can_add_initalised = true;
+const FAC_CAN_START_ORDERS_BY_PLAYER = {
+
 };
 
 
@@ -1112,7 +1105,7 @@ function add_facility(fac_id, player_id){
         };
 
 
-        if (PLAYERS_INFO_FACILITY_TABLE.facilitie_count[player_id] >= BASTION_META.fac_max_for_level[bastion_current_tier]){
+        if (PLAYERS_INFO_FACILITY_TABLE.facility_count[player_id] >= BASTION_META.fac_max_for_level[bastion_current_tier]){
             return ERROR_HANDLER.fac_add.reached_max_for_level;
         };
 
@@ -1132,19 +1125,19 @@ function add_facility(fac_id, player_id){
         };
     };
 
-    let fac_key_level;
-    switch (facility_level) {
-        case 5: fac_key_level = 'fac_perms_lvl_5'; break;
-        case 9: fac_key_level = 'fac_perms_lvl_9'; break;
-        case 13: fac_key_level = 'fac_perms_lvl_13'; break;
-        case 17: fac_key_level = 'fac_perms_lvl_17'; break;
-    };
+    // let fac_key_level;
+    // switch (facility_level) {
+    //     case 5: fac_key_level = 'fac_perms_lvl_5'; break;
+    //     case 9: fac_key_level = 'fac_perms_lvl_9'; break;
+    //     case 13: fac_key_level = 'fac_perms_lvl_13'; break;
+    //     case 17: fac_key_level = 'fac_perms_lvl_17'; break;
+    // };
+    // PLAYERS_INFO_FACILITY_TABLE[fac_key_level][player_id]++;
 
 
 
 
-    PLAYERS_INFO_FACILITY_TABLE[fac_key_level][player_id]++;
-    PLAYERS_INFO_FACILITY_TABLE.facilitie_count[player_id]++;
+    PLAYERS_INFO_FACILITY_TABLE.facility_count[player_id]++;
     PLAYERS_INFO_FACILITY_TABLE.facilities[player_id] |= 1n << BigInt(fac_id);
 
 
@@ -1231,7 +1224,7 @@ function remove_underscores_and_fix_fac_upper_lower_case(name){
 };
 
 function getProductFacilityOrigin(prod_id){
-    console.assert(typeof prod_id === 'number', `getProductFacilityOrigin - prod_id is not bigint`);
+    console.assert(typeof prod_id === 'number', `getProductFacilityOrigin - prod_id is not a number`);
     for(let i = 0n; i<FAC_INTRINSICS.prods_contained.length;i++){
         if ((FAC_INTRINSICS.prods_contained[i] & (1n<<BigInt(prod_id))) !== 0n){
             return FAC_BY_ID[i];
@@ -1278,7 +1271,6 @@ function  viewPlayerFacilities(player_id){
     return collect_fac_data;
 };
 
-//TODO: Rename since it's not really an adjacency list anymore.
 const DM_CMD_MAP = {
     gm_menu: {
         header: "Main Menu - DM",
@@ -1339,16 +1331,6 @@ const DM_CMD_MAP = {
 function handle_and_validate_player_adding_facility(player_id,fac_id){
     console.assert(typeof player_id === 'number', "construct_player_buttons_bylvl - player_id is not a number");
     console.assert(typeof fac_id === 'number', "construct_player_buttons_bylvl -  fac_id is not a number");
-    const player_can_add = BASTION_META.fac_av_to_add[player_id].has(fac_id);
-    if(player_can_add){
-        if(FAC_MORE_THAN_ONE.has(fac_id)){
-            return true;
-        }else{
-            BASTION_META.fac_av_to_add[player_id].delete(fac_id);
-            return true;
-        };
-    }
-    return false;
 };
 
 
@@ -1379,7 +1361,6 @@ function construct_player_buttons_bylvl(player_id, fac_lvl){
     }
 };
 
-//TODO: Rename since it's not really an adjacency list anymore.
 const PLAYERS_CMD_MAP = {
     menu: {
         header: "Main Menu",
@@ -1399,7 +1380,7 @@ const PLAYERS_CMD_MAP = {
             return remove_underscores_and_fix_fac_upper_lower_case(facility_name)
         })
         for (let i = 0; i < fac_table.length; i++){
-            collected_buttons.push({name: formatted_names[i], command: '@fac_editview ' + fac_table[i]})
+            collected_buttons.push({name: formatted_names[i], command: '@fac_editview ' + i});
         };
 
         if (fac_table.length === 0){
@@ -1430,11 +1411,11 @@ const PLAYERS_CMD_MAP = {
         }
     },
     fac_add: (fac_id,player_id) => {
-        console.assert(typeof fac_id==='number', "Facility name is not a string!");
-        console.assert(typeof player_id==='number', "Player ID is not a number!");
+        console.assert(typeof fac_id==='number', "fac_add fac_id is not a number");
+        console.assert(typeof player_id==='number', "fac_add Player ID is not a number!");
 
         const facility_result = add_facility(fac_id,player_id);
-        if (!facility_result){
+        if (facility_result[0]===-1){
             return facility_result;
         };
         const fac_name_unformatted = facility_result[0];
@@ -1448,8 +1429,8 @@ const PLAYERS_CMD_MAP = {
         }
     },
     fac_editview: (fac_id, player_id) => {
-        console.assert(typeof fac_name==='string', "Facility name is not a string!");
-        console.assert(typeof player_id==='number', "Player ID is not a number!");
+        console.assert(typeof fac_id==='number', "fac_editview - fac_id is not a number!");
+        console.assert(typeof player_id==='number', "fac_editview player_id is not a number!");
 
         const fac_name = FAC_BY_ID[fac_id];
         const formatted_name = remove_underscores_and_fix_fac_upper_lower_case(fac_name);
@@ -1464,11 +1445,13 @@ const PLAYERS_CMD_MAP = {
         for (let i = fac_mask_start; i <= fac_mask_stop; i++){
             if ((fac_prods & (1n<<i)) !== 0n){
                 const format_order_name = remove_underscores_and_fix_fac_upper_lower_case(FAC_PROD_IDS[i]);
-                fac_comp_buttons.push({name: `Start order for ${format_order_name}`, command: `@ord_start ${FAC_PROD_IDS[i]}`});
+                fac_comp_buttons.push({name: `Start order for ${format_order_name}`, command: `@ord_start ${i}`});
             };
         }
 
         const player_active_orders = view_player_active_orders(player_id)
+        const player_mask_start = flsb(player_active_orders);
+        const player_mask_stop = fmsb(player_active_orders);
         if(player_active_orders[0]!==-1){
             for (let i = player_mask_start; i <= player_mask_stop; i++ ){
                 fac_comp_buttons.push({
@@ -1514,23 +1497,16 @@ const PLAYERS_CMD_MAP = {
     //since I am using this on roll20, and I am tired dealing with it not handling big ints.
     //Everything works locally but then I have to adjust on roll20, so I'll instead just deal with the result
     //and convert internally in the function's scope into their ids.
-    ord_start: (product_name, player_id) => {
-        console.assert(typeof product_name==='string', "Product name is not a string");
+    ord_start: (product_id, player_id) => {
+        console.assert(typeof product_id==='number', "Product name is not a string");
         console.assert(typeof player_id==='number', "Player ID is not a number");
 
-        const product_id = FAC_PROD_NAMES[product_name];
         const fac_player_orders = view_player_active_orders(player_id);
-        if(fac_player_orders.length>0){return null};
+        if(fac_player_orders[0]===-1){return fac_player_orders};
         const product_name_formatted = remove_underscores_and_fix_fac_upper_lower_case(FAC_PROD_IDS[product_id]);
         for(let i = 0; i < fac_player_orders.length; i++){
             if((Number(fac_player_orders[i]) === product_id)){
-                return {
-                    header: `${product_name_formatted} Already Scheduled`,
-                    buttons: [{
-                        name: `Click to complete order and start a new one`, command: `@ord_finish ${product_id} ${player_id}`,
-                        name: `Return to Orders Status`, command: `@ord_status ${product_id} ${player_id}`,
-                    }],
-                };
+                return ERROR_HANDLER.ord_start.already_queued(product_id)
             };
         };
         const started_order = start_order(product_id, player_id);
@@ -1548,8 +1524,7 @@ const PLAYERS_CMD_MAP = {
     ord_finish: (product_id, player_id) => {
         const fac_player_orders = view_player_active_orders(player_id);
 
-        //Player has no active orders
-        if(fac_player_orders.length>0){return null};
+        if(fac_player_orders[0] === -1 ){return fac_player_orders};
 
         const product_name_formatted = remove_underscores_and_fix_fac_upper_lower_case(FAC_PROD_IDS[product_id]);
         for(let i=0; i < fac_player_orders?.length; i++){
@@ -1576,7 +1551,7 @@ const PLAYERS_CMD_MAP = {
         const fac_player_orders = view_player_active_orders(player_id);
 
         //Player has no active orders
-        if(fac_player_orders.length>0){
+        if(fac_player_orders.length===0){
             return ERROR_HANDLER.ord_status.no_active_orders;
         };
 
@@ -1591,6 +1566,7 @@ const PLAYERS_CMD_MAP = {
             buttons: fac_player_orders_buttons,
         }
     },
+    //TODO: Finish ord_info
     ord_info: (prod_id) => {
         console.assert(typeof prod_id === 'number', "ord_info prod_id is not a number");
         const prod_info = FAC_PROD_IDS[prod_id];
@@ -1666,13 +1642,12 @@ const NAVIGATOR_FAC_ORDERS_OPS = new Set(["ord_start","ord_finish","ord_status",
 addPlayer("Storm");
 add_facility(FAC_BY_NAMES.SMITHY,0);
 add_facility(FAC_BY_NAMES.DECORATIVE_GARDEN,0);
-log(add_facility(FAC_BY_NAMES.WAR_ROOM,0));
-log(start_order(4,0))
+log(start_order(FAC_PROD_NAMES.PERFUME,0))
 
-
+const facility = FAC_BY_NAMES.DECORATIVE_GARDEN
 const msg = {
     type: "api",
-    content: "!bastion @fac_lvl5 0"
+    content: `!bastion @orders 0`
 };
 
 
@@ -1685,6 +1660,8 @@ function handleMSG(){
         if(NAVIGATOR_MENU.has(command) || NAVIGATOR_FAC_OPS.has(command) || NAVIGATOR_FAC_ORDERS_OPS.has(command)){
             let player_view;
             let table_view_config;
+            let fac_id;
+            let prod_id;
             switch (command) {
                 case 'menu':
                 case 'facilities':
@@ -1710,14 +1687,47 @@ function handleMSG(){
                     player_view = createTableNavMenu(table_view_config)
                     break;
                 case 'fac_add':
+                    fac_id = parseInt(parts[2])
+                    table_view_config = PLAYERS_CMD_MAP["fac_add"](fac_id, 0);
+                    if(table_view_config[0] === -1){
+                        return table_view_config[1];
+                    }
+                    player_view = createTableNavMenu(table_view_config)
+                    break
                 case 'fac_remove':
                 case 'fac_view':
+                    table_view_config = PLAYERS_CMD_MAP["fac_view"](0);
+                    player_view = createTableNavMenu(table_view_config);
+                    break
                 case 'fac_editview':
+                    fac_id = parseInt(parts[2])
+                    table_view_config = PLAYERS_CMD_MAP["fac_editview"](fac_id,0);
+                    player_view = createTableNavMenu(table_view_config)
+                    break
                 case 'fac_info':
+                    fac_id = parseInt(parts[2])
+                    table_view_config = PLAYERS_CMD_MAP["fac_info"](fac_id);
+                    player_view = createTableNavMenu(table_view_config)
+                    break
                 case 'ord_start':
                 case 'ord_finish':
+                    prod_id = parseInt(parts[2])
+                    table_view_config = PLAYERS_CMD_MAP[command](prod_id,0);
+                    if(table_view_config[0]===-1){
+                        return table_view_config[1];
+                    };
+                    player_view = createTableNavMenu(table_view_config);
+                    log(table_view_config)
+                    return
                 case 'ord_history':
                 case 'ord_info':
+                    prod_id = parseInt(parts[2])
+                    table_view_config = PLAYERS_CMD_MAP["ord_info"](prod_id);
+                    if(table_view_config[0]===-1){
+                        return table_view_config[1];
+                    };
+
+                    player_view = createTableNavMenu(table_view_config);
                     break;
             }
             return player_view

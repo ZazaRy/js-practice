@@ -19,4 +19,5 @@ function batchBy4(arr){
 };
 
 
-batchBy4(mylist)
+
+
