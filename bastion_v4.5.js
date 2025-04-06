@@ -82,11 +82,20 @@ const ERROR_HANDLER = {
     fac_editview: {
     },
     ord_start: {
-        already_queued: (prod_id) => {
-            console.assert(typeof fac_level === 'number', "already_queued prod_id should be a number");
-            const format_name = mut_underscore_and_cases_in_name(PRODS_BY_ID[prod_id].name)
-            return [-1,`${format_name} Already In Queue`];
+        already_queued: (prod_name) => {
+            console.assert(typeof prod_name === 'string', "already_queued prod_name should be a string");
+            return [-1,`${prod_name} Already In Queue`];
         },
+        prod_not_in_fac: (prod_name, fac_name) => {
+            console.assert(typeof prod_name === 'string', "prod_not_in_fac prod_name should be a string");
+            console.assert(typeof fac_name === 'string', "prod_not_in_fac fac_name should be a string");
+            return [-1, `${prod_name} cannot be queued by ${fac_name}`];
+        },
+        missing_fac: (prod_name, fac_name) => {
+            console.assert(typeof prod_name === 'string', "missing_fac prod_name should be a string");
+            console.assert(typeof fac_name === 'string', "missing_fac fac_name should be a string");
+            return [-1, `${prod_name} cannot be queued because you don't own a ${fac_name}`];
+        }
     },
     ord_finish: {},
     ord_status: {
@@ -126,20 +135,7 @@ const BASTION_META = {
 };
 Object.freeze(BASTION_META.ACTIVE_TIER);
 
-
-function set_cur_bastion_lvl_and_av_to_add(level){
-    const ACTIVE_TIER = {
-        5: 0,
-        9: 1,
-        13: 2,
-        17: 3,
-    };
-    BASTION_META.active_tier = ACTIVE_TIER[level];
-};
-
-
 const FAC_BY_NAMES = {
-    length: 37,
     //Craft - Order ID 0
     ARCANE_STUDY: 0,
     LABORATORY: 1,
@@ -188,6 +184,50 @@ const FAC_BY_ID = Object.entries(FAC_BY_NAMES).reduce((map,[name,id]) => {
     map[id] = name;
     return map;
 },{})
+Object.defineProperty(FAC_BY_NAMES, "length", {
+    value: (() => {
+        let count = 0;
+        for (const [_] in FAC_BY_ID){
+            count++;
+        }
+        return count;
+    })(),
+    enumerable: false,
+})
+Object.freeze(FAC_BY_ID);
+Object.freeze(FAC_BY_NAMES);
+
+const SPECIAL_EFFECTS_DDB_LINKS= {
+    ARCANE_STUDY: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#ArcaneStudy",
+    ARCHIVE: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Archive",
+    ARMORY: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Armory",
+    BARRACK: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Barrack",
+    DEMIPLANE: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Demiplane",
+    GAMING_HALL: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#GamingHall",
+    GARDEN_GENERIC: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Garden",
+    GREENHOUSE: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Greenhouse",
+    GUILDHALL_GENERIC: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Guildhall",
+    LABORATORY: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Laboratory",
+    LIBRARY: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Library",
+    MEDITATION_CHAMBER: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#MeditationChamber",
+    MENAGERIE: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Menagerie",
+    OBSERVATORY: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Observatory",
+    PUB: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Pub",
+    RELIQUARY: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Reliquary",
+    SACRISTY: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Sacristy",
+    SANCTUARY: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Sanctuary",
+    SANCTUM: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Sanctum",
+    SCRIPTORIUM: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Scriptorium",
+    SMITHY: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Smithy",
+    STABLE: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Stable",
+    STOREHOUSE: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Storehouse",
+    TELEPORTATION_CIRCLE: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#TeleportationCircle",
+    THEATER: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Theater",
+    TRAINING_AREA: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#TrainingArea",
+    TROPHY_ROOM: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#TrophyRoom",
+    WAR_ROOM: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#WarRoom",
+    WORKSHOP: "https://www.dndbeyond.com/sources/dnd/dmg-2024/bastions#Workshop",
+}
 
 
 
@@ -277,11 +317,12 @@ const FAC_INTRINSICS = {
     level: new Uint8Array(FAC_BY_NAMES.length),
     hirelings: new Uint8Array(FAC_BY_NAMES.length),
     order_type: new Uint8Array(FAC_BY_NAMES.length),
-    upgradable: new Uint8Array(FAC_BY_NAMES.length),
+    upgradable: new Uint8Array(FAC_BY_NAMES.length).fill(255),
     prods_contained: new BigUint64Array(FAC_BY_NAMES.length),
+
 };
 
-function filter_msb_in(mask){
+function filter_msb_in_mask(mask){
     if(typeof mask !== 'bigint'){mask = BigInt(mask)}
     let msb = 0n;
     let i = 64n;
@@ -297,7 +338,7 @@ function filter_msb_in(mask){
     return msb
 };
 
-function filter_lsb_in(mask){
+function filter_lsb_in_mask(mask){
     if(typeof mask !== 'bigint'){mask = BigInt(mask)}
     let lsb = 0n;
     let max_search = 64;
@@ -643,6 +684,14 @@ FAC_INTRINSICS.order_type[FAC_BY_NAMES.OBSERVATORY] = FAC_INTRINSICS.order_type[
 FAC_INTRINSICS.order_type[FAC_BY_NAMES.THEATER] = FAC_INTRINSICS.order_type[FAC_BY_NAMES.TRAINING_AREA] = 5;
 
 
+//Upgradable facilities
+FAC_INTRINSICS.upgradable[FAC_BY_NAMES.ARCHIVE] = FAC_INTRINSICS.upgradable[FAC_BY_NAMES.BARRACK] =
+FAC_INTRINSICS.upgradable[FAC_BY_NAMES.FOOD_GARDEN] = FAC_INTRINSICS.upgradable[FAC_BY_NAMES.POISON_GARDEN] =
+FAC_INTRINSICS.upgradable[FAC_BY_NAMES.HERB_GARDEN] = FAC_INTRINSICS.upgradable[FAC_BY_NAMES.DECORATIVE_GARDEN] =
+FAC_INTRINSICS.upgradable[FAC_BY_NAMES.PUB] = FAC_INTRINSICS.upgradable[FAC_BY_NAMES.STABLE] =
+FAC_INTRINSICS.upgradable[FAC_BY_NAMES.WORKSHOP] = 1;
+
+
 
 
 
@@ -695,16 +744,70 @@ Object.defineProperty(PLAYERS_REGISTRATION_TABLE, "GID",{
 });
 
 
-function emit_array_from(mask){
-    const l = filter_lsb_in(mask);
-    const r = filter_msb_in(mask);
+function emit_array_from_mask(mask){
+    const l = filter_lsb_in_mask(mask);
+    const r = filter_msb_in_mask(mask);
+
+    //Creating this count instead of using index
+    //such that I don't have to convert the index
+    //to and from bigint
     let count = 0;
     const collect_non_zero = new Uint8Array(Number(r-l));
     for(let i = l; i < r; i++){
         collect_non_zero[count] = Number(i);
         count++;
     };
+
     return collect_non_zero;
+};
+
+function emit_metadata_for_facid(fac_id, player_id=null){
+    if(player_id){
+        const stride = player_id * MAX_BASTION_FAC;
+        const fac_index = stride + (fac_id%MAX_BASTION_FAC)
+        const cur_hirelings = this.fac_cur_hirelings[fac_index];
+        const cur_size = this.fac_cur_size[fac_index];
+        const is_upgraded = this.fac_is_upgraded[fac_index];
+
+        return {
+            hirelings: cur_hirelings,
+            size: cur_size,
+            upgraded: is_upgraded,
+        }
+    };
+    return {
+        hirelings: FAC_INTRINSICS.hirelings[fac_id],
+        size: FAC_INTRINSICS.size[fac_id],
+        upgraded: FAC_INTRINSICS.upgradable[fac_id],
+    };
+
+}
+
+function emit_names_from_ids(list, type){
+    console.assert(typeof list === "object", "emit_names_from_ids - list should be an object");
+    console.assert(typeof type === "string", "emit_names_from_ids - type should be a string");
+
+    const collector = []
+
+    switch (type) {
+        case 'PROD':
+            for(let i = 0; i < list.length; i++){
+                collector.push(PRODS_BY_ID[list[i]].name);
+            };
+            break;
+        case 'FAC':
+            for(let i = 0; i < list.length; i++){
+                collector.push(FAC_BY_ID[list[i].fac_id]);
+            };
+            break;
+        case 'PLAYERS':
+            for(let i = 0; i < list.length; i++){
+                collector.push(PLAYERS_REGISTRATION_TABLE[list[i]].player_name);
+            };
+            break;
+    }
+
+    return collector;
 };
 
 
@@ -725,41 +828,35 @@ function filter_facilityID_with_productID(product_id){
 };
 
 
-function mut_add_player(player_name,roll20_id){
-    console.assert(typeof player_name === 'string', "emit_player_to_registration - player_name should be a string");
 
-    const max_players_reached = PLAYERS_REGISTRATION_TABLE.GID >= MAX_PLAYERS;
-    if(max_players_reached){
-        return ERROR_HANDLER.gm_add_unreg_players
-    };
+function mut_underscore_and_cases_in_name_array(name_list){
+    console.assert(typeof name_list[0] === 'string', `mut_underscore_and_cases_in_name_array name ${name_list[0]} is not a string`);
+    const collect_names = [];
 
-    const player_exists = PLAYERS_REGISTRATION_TABLE[player_name];
-    if(player_exists.success){
-        return `Player ${player_name} already exists`;
-    };
-
-    const current_gid = PLAYERS_REGISTRATION_TABLE.GID;
-    PLAYERS_REGISTRATION_TABLE[current_gid] = {roll20_id: roll20_id, player_name: player_name};
-    PLAYERS_REGISTRATION_TABLE.GID++;
-
-    return `Player ${player_name} successfully added`
-
+    for (let i = 0; i < name_list.length; i++){
+        collect_names.push(
+            name_list[i]
+            .replace(/_/g, " ")
+            .split(" ")
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(" ")
+        );
+    }
+    return collect_names
 };
 
-
 function mut_underscore_and_cases_in_name(name){
-    console.assert(typeof name === 'string', `mut_underscore_and_cases_in_name Name ${name} is not a string`);
+    console.assert(typeof name === 'string', `mut_underscore_and_cases_in_name name ${name} is not a string`);
     return name
     .replace(/_/g, " ")
     .split(" ")
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
+    .join(" ")
 };
 
 
 
 function emit_uninited_field_maxint_u8(length){
-    length += 9
     const uninited = new Uint8Array(length);
     const rem_idx = (length>>2) << 2;
     const rem = length % 4;
@@ -783,12 +880,14 @@ function gen_bastion_data_fields(){
         fac_ids: emit_uninited_field_maxint_u8(length),
         fac_queued_products: emit_uninited_field_maxint_u8(length),
         fac_queue_elapsed: emit_uninited_field_maxint_u8(length),
+        fac_cur_size: emit_uninited_field_maxint_u8(length),
+        fac_cur_hirelings: emit_uninited_field_maxint_u8(length),
+        fac_is_upgraded: emit_uninited_field_maxint_u8(length),
     };
 
 };
 
 
-BASTION_META.mut_set_bastion_tier_level(5);
 const FAC_MORE_THAN_ONCE_ALLOWED =
     (1<<FAC_BY_NAMES.BARRACK) | (1<<FAC_BY_NAMES.FOOD_GARDEN) | (1<<FAC_BY_NAMES.HERB_GARDEN) | (1<<FAC_BY_NAMES.POISON_GARDEN) | (1<<FAC_BY_NAMES.DECORATIVE_GARDEN) |
     (1<<FAC_BY_NAMES.STABLE) | (1<<FAC_BY_NAMES.TRAINING_AREA);
@@ -797,84 +896,195 @@ const FAC_MORE_THAN_ONCE_ALLOWED =
 const PLAYERS_BASTION_INFO_TABLE = {
     ...gen_bastion_data_fields(),
 
+    mut_add_player(player_name,roll20_id){
+        console.assert(typeof player_name === 'string', "emit_player_to_registration - player_name should be a string");
+
+        const max_players_reached = PLAYERS_REGISTRATION_TABLE.GID >= MAX_PLAYERS;
+        if(max_players_reached){
+            return ERROR_HANDLER.gm_add_unreg_players
+        };
+
+        const player_exists = PLAYERS_REGISTRATION_TABLE[player_name];
+        if(player_exists.success){
+            return `Player ${player_name} already exists`;
+        };
+
+        const current_gid = PLAYERS_REGISTRATION_TABLE.GID;
+        PLAYERS_REGISTRATION_TABLE[current_gid] = {roll20_id: roll20_id, player_name: player_name};
+        PLAYERS_REGISTRATION_TABLE.GID++;
+
+        return `Player ${player_name} successfully added`
+
+    },
 
 
     mut_add_facility(fac_id, player_id){
         console.assert(typeof fac_id === 'number', "mut_add_facility in PLAYERS_BASTION_INFO_TABLE - fac_id should be a number");
         console.assert(typeof player_id === 'number', "mut_add_facility in PLAYERS_BASTION_INFO_TABLE - player_id should be a number");
-        const stride = player_id*MAX_BASTION_FAC;
+
+        const stride = player_id * MAX_BASTION_FAC;
         const stride_width = stride + MAX_BASTION_FAC;
-        console.assert(stride_width > 0, "mut_add_facility in PLAYERS_BASTION_INFO_TABLE - stride_width has to be gt 0");
 
-        const fac_name = FAC_BY_ID[fac_id];
-        const fac_lvl = FAC_INTRINSICS.level[fac_id];
-        const player_name = PLAYERS_REGISTRATION_TABLE[player_id]?.value?.player_name;
-        console.assert(typeof player_name === 'string', "mut_add_facility from PLAYERS_REGISTRATION_TABLE - player_name should be a string")
+        const fac_name = mut_underscore_and_cases_in_name(FAC_BY_ID[fac_id]);
+        const fac_level = FAC_INTRINSICS.level[fac_id];
 
-        const bastion_max_fac_level_for_tier = BASTION_META.gen_max_fac_level_for_tier();;
-        const bastion_max_fac_for_level = BASTION_META.gen_max_fac_count_for_level();
-        const facility_level = FAC_INTRINSICS.level[fac_id];
-        const current_player_fac_count = this.filter_player_total_fac_count(player_id);
+        //Check if player can add more facilities
+        const cur_fac_count = this.filter_player_total_fac_count(stride, stride_width);
+        const player_can_add_more = cur_fac_count < BASTION_META.gen_max_fac_count_for_level();
 
-        log("Player facility count: ", current_player_fac_count)
-        if(current_player_fac_count >= bastion_max_fac_for_level){
+
+        //Check if the facility is within the bastion tier level bounds
+        const bastion_tier_level = BASTION_META.gen_max_fac_level_for_tier();
+        const fac_level_within_bounds = fac_level <= bastion_tier_level;
+
+        if(!player_can_add_more){
             return ERROR_HANDLER.fac_add.reached_max_for_level(fac_name);
-        }else if(bastion_max_fac_level_for_tier < facility_level){
-            return ERROR_HANDLER.fac_add.fac_level_too_high(fac_name,fac_lvl,bastion_max_fac_level_for_tier);
+        };
+
+        if(!fac_level_within_bounds){
+            return ERROR_HANDLER.fac_add.fac_level_too_high(fac_name, fac_level, bastion_tier_level);
+        };
+
+        //Check if player has facility and if facility can be added more than once
+        const player_has_fac = this.fac_ids.slice(stride, stride_width).includes(fac_id);
+        if(player_has_fac && !(FAC_MORE_THAN_ONCE_ALLOWED & (1 << fac_id))){
+            return ERROR_HANDLER.fac_add.fac_duplicate(fac_name);
         };
 
 
-        //Check if facility can be added more than once.
-        //This is used on the next for loop in the conditional if.
-        let allowed_dupe = false;
-        if(FAC_MORE_THAN_ONCE_ALLOWED & (1<<fac_id)){
-            allowed_dupe = true;
+        const fac_local_index = this.filter_empty_facID_for_player(stride, stride_width);
+        this.fac_ids[stride+fac_local_index] = fac_id;
+        PLAYER_COLLECTOR_BUS[player_id].fac_count_total++;
+        return `${FAC_BY_ID[fac_id]} added to ${PLAYERS_REGISTRATION_TABLE[player_id].value.player_name}`
+
+    },
+
+    mut_queue_facility(fac_id, prod_id, player_id){
+        console.assert(typeof fac_id === 'number', "mut_add_facility in PLAYERS_BASTION_INFO_TABLE - fac_id should be a number");
+        console.assert(typeof player_id === 'number', "mut_add_facility in PLAYERS_BASTION_INFO_TABLE - player_id should be a number");
+        console.assert(typeof prod_id === 'number', "mut_add_facility in PLAYERS_BASTION_INFO_TABLE - prod_id should be a number");
+
+        if(PLAYER_COLLECTOR_BUS[player_id].fac_queued_total === PLAYER_COLLECTOR_BUS[player_id].fac_count_total){
+            return [-1,`Cannot queue more products. All facilities are working`];
         };
 
+        const stride = player_id * MAX_BASTION_FAC;
+        const stride_width = stride + MAX_BASTION_FAC;
+
+        const fac_name = mut_underscore_and_cases_in_name(FAC_BY_ID[fac_id]);
+        const prod_name = mut_underscore_and_cases_in_name(PRODS_BY_ID[prod_id].name);
+
+        const fac_origin_id = filter_facilityID_with_productID(prod_id);
+        const fac_matches_prod = fac_id === fac_origin_id;
+        if(!fac_matches_prod){
+            return ERROR_HANDLER.ord_start.prod_not_in_fac(prod_name, fac_name);
+        };
+
+
+        this.filter_fac_queable(player_id, fac_id, stride, stride_width);
+        const next_is_queable = this.fac_queued_products[stride+PLAYER_COLLECTOR_BUS[player_id].next_queable] === 255;
+        const next_queable_id = PLAYER_COLLECTOR_BUS[player_id].next_queable;
+
+        if(!next_is_queable){
+            return ERROR_HANDLER.ord_start.already_queued(prod_name);
+        };
+        this.fac_queued_products[stride+next_queable_id] = prod_id;
+        PLAYER_COLLECTOR_BUS[player_id].fac_queued_total++;
+        return `${prod_name} Successfully Queued In ${fac_name}#${next_queable_id}`;
+    },
+
+    filter_facIDs_for_player(player_id, fac_id, stride, stride_width){
+    },
+
+    filter_fac_queable(player_id, fac_id, stride, stride_width){
         for(let i = stride; i < stride_width; i++){
-            //Facility already exists and is not allowed
-            //as a duplicate facility.
-            if(fac_id === this.fac_ids[i] && !allowed_dupe){
-                return ERROR_HANDLER.fac_add.fac_duplicate(fac_name);
-            };
+            if(this.fac_ids[i] === fac_id && this.fac_queued_products[i]===255){
+                PLAYER_COLLECTOR_BUS[player_id].next_queable = i;
+                break
+            }
         };
-
-        return {fac_name: fac_name, player_name: player_name};
     },
 
 
-    filter_player_total_fac_count(player_id){
-        const stride = player_id * MAX_BASTION_FAC;
-        const stride_width = stride + MAX_BASTION_FAC;
+    filter_player_total_fac_count(stride, stride_width){
         let count = 0;
         for(let i = stride; i < stride_width; i++){
             if(this.fac_ids[i]!==255){
-                log("Facility: ", this.fac_ids[i])
                 count++;
-            }
-        };
-        return count
-    },
-
-
-
-    filter_queued_orders_for(player_id){
-        const stride = player_id * MAX_BASTION_FAC;
-        const stride_width = stride + MAX_BASTION_FAC;
-        for(let i = stride; i < stride_width; i++){
-            if(this.fac_ids[i]!==255){
-                count++;
-            }
+            };
         };
         return count;
     },
 
+    filter_empty_facID_for_player(stride, stride_width){
+        for(let i = stride; i < stride_width; i++){
+            if(this.fac_ids[i]===255){
+                return i;
+            };
+        };
+        return null;
+    },
+
+
+
+    filter_queued_orders_count(player_id){
+    },
+
+    filter_queued_orders_id(player_id){
+    },
+
+    filter_facName_from_facIndex(fac_index_id, player_id){
+    },
+
+
+
 };
 
-log(mut_add_player("Storm"));
-log(mut_add_player("Storm"));
-mut_add_player("Octavius");
-log(PLAYERS_BASTION_INFO_TABLE.mut_add_facility(FAC_BY_NAMES.ARMORY,0));
+
+const PLAYER_COLLECTOR_BUS = {
+    0: {
+        next_queable: null,
+        fac_queued_total: 0,
+        fac_count_total: 0,
+    },
+    1: {
+        next_queable: null,
+        fac_queued_total: 0,
+        fac_count_total: 0,
+    },
+    2: {
+        next_queable: null,
+        fac_queued_total: 0,
+        fac_count_total: 0,
+    },
+    3: {
+        next_queable: null,
+        fac_queued_total: 0,
+        fac_count_total: 0,
+    },
+    4: {
+        next_queable: null,
+        fac_queued_total: 0,
+        fac_count_total: 0,
+    },
+    5: {
+        next_queable: null,
+        fac_queued_total: 0,
+        fac_count_total: 0,
+    },
+    6: {
+        next_queable: null,
+        fac_queued_total: 0,
+        fac_count_total: 0,
+    },
+    7: {
+        next_queable: null,
+        fac_queued_total: 0,
+        fac_count_total: 0,
+    },
+};
+
+
 
 
 
@@ -910,7 +1120,7 @@ const PLAYERS_CMD_MAP = {
 
         const collected_buttons = [];
 
-        const fac_table = filter_facilities_in_player_bastion(player_id);
+        const fac_table = PLAYERS_BASTION_INFO_TABLE.filter_facIDs_for_player(player_id);
 
 
         log("fac_table", fac_table)
@@ -918,23 +1128,18 @@ const PLAYERS_CMD_MAP = {
         const formatted_names = (() => {
             const collection_formatted = []
             for(let i = 0; i < fac_table.length;i++){
-                const fac_id = fac_table[i]
+                const fac_id = fac_table[i].fac_id
                 collection_formatted.push(mut_underscore_and_cases_in_name(FAC_BY_ID[fac_id]))
             };
             return collection_formatted;
         })();
 
-        for (let i = 0; i < fac_table.length; i++){
-            if(FAC_MORE_THAN_ONCE & (1n<<BigInt(fac_table[i]))){
-                const fac_count = PLAYERS_FAC_DUPE_COUNT.filter_count_from(fac_table[i], player_id);
-                for(let j = 0; j < fac_count; j++){
-                    collected_buttons.push({name: `${formatted_names[i]}#0${j}`, command: '@fac_editview ' + (Number(fac_table[i]<<4)+j)});;
-                };
-                continue;
-            };
-            collected_buttons.push({name: formatted_names[i], command: '@fac_editview ' + fac_table[i]});
-        };
 
+        for(let i = 0; i < fac_table.length; i++){
+            collected_buttons.push(
+                {name: `${formatted_names[i]}#${fac_table[i].fac_index}`, command: `@fac_editview ${fac_table[i].fac_index}`}
+            );
+        };
         if (fac_table.length === 0){
             return {
                 header: "You Have No Facilities Yet",
@@ -983,61 +1188,40 @@ const PLAYERS_CMD_MAP = {
         };
     },
     fac_editview: (fac_id, player_id) => {
-        console.assert(typeof fac_id==='number', "fac_editview - fac_id is not a number!");
+        console.assert(typeof fac_index_id==='number', "fac_editview - fac_id is not a number!");
         console.assert(typeof player_id==='number', "fac_editview player_id is not a number!");
 
+        const fac_index_id = fac_id % MAX_BASTION_FAC;
+        const facility_name = FAC_BY_ID[fac_id];
+        const format_fac_name = mut_underscore_and_cases_in_name(facility_name);
 
-        if(fac_id>FAC_BY_NAMES.length){
-            const fac_count = (fac_id%(1<<4)) + 1
-            fac_id = fac_id >> 4;
-            return;
-        };
-
-        const fac_name = FAC_BY_ID[fac_id];
-        const formatted_name = mut_underscore_and_cases_in_name(fac_name);
-
-        console.assert(typeof fac_player_orders!==BigInt, "fac_editview fac_player_orders is not BigInt")
-
-        const fac_comp_buttons = [];
-        const fac_prods = FAC_INTRINSICS.prods_contained[fac_id];
-        const fac_mask_start = filter_lsb_in(fac_prods);
-        const fac_mask_stop = filter_msb_in(fac_prods);
-
-        for (let i = fac_mask_start; i <= fac_mask_stop; i++){
-            if ((fac_prods & (1n<<i)) !== 0n){
-                const format_order_name = mut_underscore_and_cases_in_name(PRODS_BY_ID[i].name);
-                fac_comp_buttons.push({name: `Start order for ${format_order_name}`, command: `@ord_start ${i}`});
-            };
-        }
-
-
-        const player_active_orders = emit_array_from(PLAYERS_BASTION_INFO_TABLE.orders_in_queue[player_id]);
-        const player_mask_start = filter_lsb_in(player_active_orders);
-        const player_mask_stop = filter_msb_in(player_active_orders);
-        if(player_active_orders[0]!==-1){
-            for (let i = player_mask_start; i <= player_mask_stop; i++ ){
-                fac_comp_buttons.push({
-                    name: `Active Order: ${player_active_orders[i]}`
-                });
+        const stride = player_id*MAX_PLAYERS;
+        const fac_idx = stride+fac_index_id;
+        const facility_queued_product = PLAYERS_BASTION_INFO_TABLE.fac_queued_products[fac_idx];
+        if(facility_queued_product===255){
+            return {
+                header: `${format_fac_name}#${fac_index_id} Orders`,
+                buttons: [
+                    {name: `No orders queued. Click to view orders for ${format_fac_name}#${fac_index_id}`, command: `@fac_view ${fac_index_id}`}
+                ],
             }
-        }else{
-            fac_comp_buttons.push({
-                name: player_active_orders[1]
-            })
-        }
-
-        return {
-            header: `Currently Viewing ${formatted_name}`,
-            buttons: fac_comp_buttons,
         };
+        const queued_product_name_formatted = mut_underscore_and_cases_in_name(PRODS_BY_ID[facility_queued_product].name);
+        return {
+            header: `${format_fac_name}#${fac_index_id} Queued Order`,
+            buttons: [
+                {name: queued_product_name_formatted, command: `@ord_info ${facility_queued_product}`}
+            ]
+        }
     },
+
     orders:{
         header: 'Your Current Orders',
         buttons: (player_id) => {
             console.assert(typeof player_id === 'number',"PLAYERS_CMD_MAP.orders - player_id shoud be a number");
             const player_orders = PLAYERS_BASTION_INFO_TABLE.orders_in_queue[player_id];
 
-            const valid_orders = emit_array_from(player_orders);
+            const valid_orders = emit_array_from_mask(player_orders);
 
 
 
@@ -1061,41 +1245,15 @@ const PLAYERS_CMD_MAP = {
             return prod_buttons;
         },
     },
-    //Not using product id as param here, because in fac_editview I am doing @ord_start + fac name
-    //since I am using this on roll20, and I am tired dealing with it not handling big ints.
-    //Everything works locally but then I have to adjust on roll20, so I'll instead just deal with the result
-    //and convert internally in the function's scope into their ids.
-    ord_start: (product_id, player_id) => {
+    ord_start: (fac_id, product_id, player_id) => {
         console.assert(typeof product_id==='number', "Product name is not a string");
         console.assert(typeof player_id==='number', "Player ID is not a number");
 
-        const player_orders = PLAYERS_BASTION_INFO_TABLE.orders_in_queue[player_id];
-        const fac_player_orders = emit_array_from(player_orders);
 
-        log("player orders: ", fac_player_orders)
-        if(fac_player_orders[0]===-1){return fac_player_orders};
+        const queue_prod = PLAYERS_BASTION_INFO_TABLE.mut_queue_facility(fac_id, product_id, player_id);
+        return queue_prod;
 
 
-        const prod_name = PRODS_BY_ID[product_id].name;
-        const product_name_formatted = mut_underscore_and_cases_in_name(prod_name);
-        const facility_origin_id = filter_facilityID_with_productID(product_id);
-
-        for(let i = 0; i < fac_player_orders.length; i++){
-            if((Number(fac_player_orders[i]) === product_id)){
-                return ERROR_HANDLER.ord_start.already_queued(product_id)
-            };
-        };
-        const started_order = mut_count_in_playerProducts(product_id, player_id);
-        if(!started_order){
-            return started_order;
-        };
-
-        return {
-            header: `Scheduled Order For ${product_name_formatted}`,
-            buttons: [{
-                name:`Return to Orders Status` , command: `@ord_status ${product_id} ${player_id}`,
-            }]
-        };
     },
     ord_finish: (product_id, player_id) => {
         const fac_player_orders = view_player_active_orders(player_id);
@@ -1127,9 +1285,6 @@ const PLAYERS_CMD_MAP = {
         const fac_player_orders = PLAYERS_BASTION_INFO_TABLE.orders_in_queue[player_id];
 
         log("Player orders: ", fac_player_orders);
-        return [0];
-
-
 
         //Player has no active orders
         if(fac_player_orders.length===0){
@@ -1158,22 +1313,42 @@ const PLAYERS_CMD_MAP = {
         const ddb_link = SPECIAL_EFFECTS_DDB_LINKS[effect_id];
         return ddb_link;
     },
-    fac_info: (fac_id) => {
+    fac_info: (fac_id, player_id=null) => {
         const facility_prods = FAC_INTRINSICS.prods_contained[fac_id];
-        const prods_lower = filter_lsb_in(facility_prods);
-        const prods_upper = filter_msb_in(facility_prods);
+        const prods_lower = filter_lsb_in_mask(facility_prods);
+        const prods_upper = filter_msb_in_mask(facility_prods);
         const fac_name = mut_underscore_and_cases_in_name(FAC_BY_ID[fac_id]);
         const collect_info = [];
         for(let i = prods_lower; i <= prods_upper; i++){
             if((facility_prods & (1n<<i)) !== 0n){
                 const formatted_prod_name = mut_underscore_and_cases_in_name(PRODS_BY_ID[i].name);
-                const order_type = mut_underscore_and_cases_in_name(ORDERS_BY_ID[getFacilityOrderType(fac_id)])
-                collect_info.push({name: `${formatted_prod_name} (Order: ${order_type})`, command: `!bastion @ord_info ${Number(i)}`})
+                const fac_order_type = ORDERS_BY_ID[FAC_INTRINSICS.order_type[fac_id]]
+                const order_type_formatted = mut_underscore_and_cases_in_name(fac_order_type)
+                collect_info.push({name: `${order_type_formatted} Info: ${formatted_prod_name}`, command: `!bastion @ord_info ${Number(i)}`})
             }
         };
-        console.assert(collect_info.length !== 0, "fac_info collect_info array is empty")
+
+        if(player_id!==null){
+            //Getting size, hirelings and upgradeable here
+            const fac_metadata = emit_metadata_for_facid(fac_id,player_id);
+            const fac_is_upgradeable = fac_metadata.upgraded;
+            const upgraded_msg = fac_is_upgradeable===255 ? "Facility Cannot Be Upgraded": `Facility Can Be Upgraded For 2000 GP`;
+            collect_info.push({name: `Hirelings Count: ${fac_metadata.hirelings}`, command: null})
+            collect_info.push({name: `Current Size: ${FAC_SIZES[fac_metadata.size].name}`, command: null})
+            collect_info.push({name: fac_metadata.upgraded===255 ? upgraded_msg : `Facility Upgraded To Max Level`, command: null})
+
+        }else{
+            const fac_base_metadata = emit_metadata_for_facid(fac_id);
+            const fac_base_is_upgradeable = fac_base_metadata.upgraded;
+            const upgraded_msg = fac_base_is_upgradeable===255 ? "Facility Cannot Be Upgraded": `Facility Can Be Upgraded For 2000 GP`;
+            collect_info.push({name: `Hirelings Count: ${fac_base_metadata.hirelings}`, command: null})
+            collect_info.push({name: `Size: ${FAC_SIZES[fac_base_metadata.size].name}`, command: null})
+            collect_info.push({name: fac_base_metadata.upgraded===255 ? upgraded_msg : `Facility Upgraded To Max Level`, command: null})
+        }
+
+        console.assert(collect_info.length !== 0, "fac_info collect_info array should not be empty")
         return {
-            header: `${fac_name} Orders`,
+            header: `${fac_name} Info`,
             buttons: collect_info,
         };
     },
@@ -1221,17 +1396,35 @@ const NAVIGATOR_FAC_ORDERS_OPS = new Set(["ord_start","ord_finish","ord_status",
 
 
 
+BASTION_META.mut_set_bastion_tier_level(9);
 
+PLAYERS_BASTION_INFO_TABLE.mut_add_player("Storm");
+PLAYERS_BASTION_INFO_TABLE.mut_add_player("Octavius");
+PLAYERS_BASTION_INFO_TABLE.mut_add_player("Rylik");
+PLAYERS_BASTION_INFO_TABLE.mut_add_player("Lilith");
+PLAYERS_BASTION_INFO_TABLE.mut_add_player("Sa'yra");
+PLAYERS_BASTION_INFO_TABLE.mut_add_player("Tara");
+PLAYERS_BASTION_INFO_TABLE.mut_add_player("Rylixia");
+PLAYERS_BASTION_INFO_TABLE.mut_add_player("Reeth'nya");
+log(PLAYERS_BASTION_INFO_TABLE.mut_add_facility(FAC_BY_NAMES.DECORATIVE_GARDEN,0));
+log(PLAYERS_BASTION_INFO_TABLE.mut_add_facility(FAC_BY_NAMES.DECORATIVE_GARDEN,0));
+log(PLAYERS_BASTION_INFO_TABLE.mut_add_facility(FAC_BY_NAMES.DECORATIVE_GARDEN,0));
+log(PLAYERS_BASTION_INFO_TABLE.mut_add_facility(FAC_BY_NAMES.DECORATIVE_GARDEN,0));
+log(PLAYERS_BASTION_INFO_TABLE.mut_add_facility(FAC_BY_NAMES.WAR_ROOM,7));
+log(PLAYERS_BASTION_INFO_TABLE.mut_add_facility(FAC_BY_NAMES.DEMIPLANE,7));
+log(PLAYERS_BASTION_INFO_TABLE.mut_queue_facility(FAC_BY_NAMES.DECORATIVE_GARDEN,PRODS_BY_NAME.CANDLES,0));
+log(PLAYERS_BASTION_INFO_TABLE.mut_queue_facility(FAC_BY_NAMES.DECORATIVE_GARDEN,PRODS_BY_NAME.CANDLES,0));
+log(PLAYERS_BASTION_INFO_TABLE.mut_queue_facility(FAC_BY_NAMES.DECORATIVE_GARDEN,PRODS_BY_NAME.CANDLES,0));
+log(PLAYERS_BASTION_INFO_TABLE.mut_queue_facility(FAC_BY_NAMES.DECORATIVE_GARDEN,PRODS_BY_NAME.CANDLES,0));
 
-const facility = FAC_BY_NAMES.DECORATIVE_GARDEN
 const msg = {
     type: "api",
-    content: `!bastion @fac_add 13`,
+    content: `!bastion @ord_start ${FAC_BY_NAMES.DECORATIVE_GARDEN} ${PRODS_BY_NAME.CANDLES}`,
 };
 
 
 
-
+BASTION_META.mut_set_bastion_tier_level(17);
 function handleMSG(){
     if(msg.type === "api" && msg.content.startsWith("!bastion @gm")){
     }else if(msg.type === "api" && msg.content.startsWith("!bastion ")){
@@ -1242,6 +1435,7 @@ function handleMSG(){
             let table_view_config;
             let fac_id;
             let prod_id;
+            let queue_result;
             switch (command) {
                 case 'menu':
                 case 'facilities':
@@ -1276,7 +1470,7 @@ function handleMSG(){
                     break
                 case 'fac_remove':
                 case 'fac_view':
-                    table_view_config = PLAYERS_CMD_MAP["fac_view"](0);
+                    table_view_config = PLAYERS_CMD_MAP["fac_view"](7);
 
                     player_view = emit_html_menu_table(table_view_config);
                     break
@@ -1287,19 +1481,18 @@ function handleMSG(){
                     break
                 case 'fac_info':
                     fac_id = parseInt(parts[2])
-                    table_view_config = PLAYERS_CMD_MAP["fac_info"](fac_id);
+                    table_view_config = PLAYERS_CMD_MAP["fac_info"](fac_id,0);
                     player_view = emit_html_menu_table(table_view_config)
                     break
                 case 'ord_start':
                 case 'ord_finish':
-                    prod_id = parseInt(parts[2])
-                    table_view_config = PLAYERS_CMD_MAP[command](prod_id,0);
-                    if(table_view_config[0]===-1){
-                        return table_view_config[1];
+                    fac_id = parseInt(parts[2]);
+                    prod_id = parseInt(parts[3])
+                    queue_result = PLAYERS_CMD_MAP[command](fac_id,prod_id,0);
+                    if(queue_result[0]===-1){
+                        return queue_result[1];
                     };
-                    player_view = emit_html_menu_table(table_view_config);
-                    log(table_view_config)
-                    return
+                    return queue_result;
                 case 'ord_history':
                 case 'ord_info':
                     prod_id = parseInt(parts[2])
